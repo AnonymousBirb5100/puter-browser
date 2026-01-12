@@ -1,8 +1,10 @@
 import { iswindow } from "@client/entry";
-import { SCRAMJETCLIENT } from "@/symbols";
+import { SCRAMJETCLIENT, SCRAMJETFRAME } from "@/symbols";
 import { ScramjetClient } from "@client/index";
 // import { argdbg } from "@client/shared/err";
 import { indirectEval } from "@client/shared/eval";
+
+export const UNSAFE_GLOBALS = ["location", "parent", "top", "eval"];
 
 export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 	let wrappedParent: typeof globalThis | null = null;
@@ -16,16 +18,16 @@ export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 				// ... then we should pretend we aren't nested and return the current window
 				wrappedParent = self;
 			}
-			} catch {
-				// accessing self.parent can throw if it's cross-origin, in which case we should also pretend we aren't nested
-				wrappedParent = self;
+		} catch {
+			// accessing self.parent can throw if it's cross-origin, in which case we should also pretend we aren't nested
+			wrappedParent = self;
 		}
 		// instead of returning top, we need to return the uppermost parent that's inside a scramjet context
 		let current = self;
 		for (;;) {
 			const test = current.parent.self;
 			if (test === current) break; // there is no parent, actual or emulated.
-	
+
 			try {
 				// ... then `test` represents a window outside of the proxy context, and therefore `current` is the topmost window in the proxy context
 				if (!(SCRAMJETCLIENT in test)) break;
@@ -38,15 +40,28 @@ export function createWrapFn(client: ScramjetClient, self: typeof globalThis) {
 		}
 		wrappedTop = current;
 	}
-	
+
+	// Create a single wrapped eval with correct name/length properties
+	// We use non-strict mode since we can't determine caller's strict mode from getters
+	const wrappedEval = indirectEval.bind(client, false);
+	// Fix the name property to match native eval
+	Object.defineProperty(wrappedEval, "name", {
+		value: "eval",
+		configurable: true,
+	});
+	// Fix the length property to match native eval (1 parameter)
+	Object.defineProperty(wrappedEval, "length", {
+		value: 1,
+		configurable: true,
+	});
+
 	return function (identifier: any, strict: boolean) {
 		if (identifier === self.location) return client.locationProxy;
-		if (identifier === self.eval) return indirectEval.bind(client, strict);
+		if (identifier === self.eval) return wrappedEval;
 		if (iswindow) {
 			if (identifier === self.parent) {
 				return wrappedParent;
-			} 
-			else if (identifier === self.top) {
+			} else if (identifier === self.top) {
 				return wrappedTop;
 			}
 		}
@@ -63,16 +78,20 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		enumerable: false,
 	});
 	Object.defineProperty(self, client.config.globals.wrappropertyfn, {
-		value: function (str) {
+		value: function (prop: string | symbol) {
 			if (
-				str === "location" ||
-				str === "parent" ||
-				str === "top" ||
-				str === "eval"
+				prop === "location" ||
+				prop === "parent" ||
+				prop === "top" ||
+				prop === "eval"
 			)
-				return client.config.globals.wrappropertybase + str;
+				return client.config.globals.wrappropertybase + prop;
 
-			return str;
+			if (prop === SCRAMJETCLIENT || prop === SCRAMJETFRAME) {
+				throw new TypeError("Cannot access internal scramjet properties");
+			}
+
+			return prop;
 		},
 		writable: false,
 		configurable: false,
@@ -146,7 +165,7 @@ export default function (client: ScramjetClient, self: typeof globalThis) {
 		client.config.globals.wrappropertybase + "eval",
 		{
 			get: function () {
-				return client.wrapfn(this.eval, true);
+				return client.wrapfn(this.eval, false);
 			},
 			set(value: any) {
 				this.eval = value;
