@@ -48,8 +48,12 @@ export function UrlInput(
 					}}
 				></input>
 			)}
-			{use(this.active, this.url)
-				.map(([active, url]) => !active && url.href != "puter://newtab")
+
+			{use(this.active, this.url, this.value)
+				.map(
+					([active, url, value]) =>
+						!active && !(!value && url.href == "puter://newtab")
+				)
 				.and(
 					<span class="inactiveurl">
 						{use(this.value)
@@ -86,8 +90,11 @@ export function UrlInput(
 							)}
 					</span>
 				)}
-			{use(this.active, this.url)
-				.map(([active, url]) => !active && url.href == "puter://newtab")
+			{use(this.active, this.url, this.value)
+				.map(
+					([active, url, value]) =>
+						!value && !active && url.href == "puter://newtab"
+				)
 				.and(
 					<span class="placeholder">Search with Google or enter address</span>
 				)}
