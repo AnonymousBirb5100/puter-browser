@@ -76,8 +76,10 @@ export function UrlInput(
 														: "about:"
 												)}
 											</span>
-											{/* even though it's actually a pathname, show it as a domain, since there is no hostname in direct schema urls */}
 											<span class="domain">
+												{use(this.url).map((t) => t.hostname)}
+											</span>
+											<span class="rest">
 												{use(this.url).map(
 													(t) => t.pathname + t.search + t.hash
 												)}
