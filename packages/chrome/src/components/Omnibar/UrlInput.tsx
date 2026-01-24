@@ -60,14 +60,18 @@ export function UrlInput(
 							.and(<span class="domain">{use(this.value)}</span>)
 							.or(
 								use(this.url)
-									.map((u) => u.protocol === "puter:")
+									.map(
+										(u) => u.protocol === "puter:" || u.protocol === "about:"
+									)
 									.and(
 										<>
-											<span class="subdomain">puter://</span>
-											<span class="domain">
-												{use(this.url).map((t) => t.hostname)}
+											<span class="subdomain">
+												{use(this.url).map((t) =>
+													t.protocol === "puter:" ? "puter://" : "about:"
+												)}
 											</span>
-											<span class="rest">
+											{/* even though it's actually a pathname, show it as a domain, since there is no hostname in direct schema urls */}
+											<span class="domain">
 												{use(this.url).map(
 													(t) => t.pathname + t.search + t.hash
 												)}
