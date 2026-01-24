@@ -2,6 +2,7 @@ import { createDelegate, createState } from "dreamland/core";
 import { StatefulClass } from "./StatefulClass";
 import { browser } from "./Browser";
 import { History, type SerializedHistory } from "./History";
+import { INTERNAL_URL_PROTOCOL } from "./consts";
 import { NewTabPage } from "./pages/NewTabPage";
 import { PlaygroundPage } from "./pages/PlaygroundPage";
 import { AboutPage } from "./pages/AboutPage";
@@ -47,7 +48,7 @@ export class Tab extends StatefulClass {
 	private initResolve!: () => void;
 
 	constructor(
-		public url: URL = new URL("puter://newtab"),
+		public url: URL = new URL(`${INTERNAL_URL_PROTOCOL}//newtab`),
 		public id = idcnt++
 	) {
 		super(createState(Object.create(Tab.prototype)));
@@ -154,7 +155,7 @@ export class Tab extends StatefulClass {
 	// only caller should be history.ts for this
 	_directnavigate(url: URL) {
 		this.url = url;
-		if (url.protocol == "puter:") {
+		if (url.protocol == INTERNAL_URL_PROTOCOL) {
 			switch (url.host) {
 				case "newtab":
 					this.history.current().title = this.title = "New Tab";

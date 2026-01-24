@@ -7,6 +7,7 @@ import { BookmarksStrip } from "@components/BookmarksStrip";
 import { Omnibar } from "@components/Omnibar/Omnibar";
 import { getTheme } from "./themes";
 import { contexts } from "./proxy/scramjet";
+import { INTERNAL_URL_PROTOCOL } from "./consts";
 
 export function App(this: FC<{}>) {
 	const applyTheme = () => {
@@ -63,7 +64,7 @@ export function App(this: FC<{}>) {
 				tabs={use(browser.tabs)}
 				activetab={use(browser.activetab)}
 				addTab={() => {
-					browser.newTab(new URL("puter://newtab"), true);
+					browser.newTab(new URL(`${INTERNAL_URL_PROTOCOL}//newtab`), true);
 				}}
 				destroyTab={(tab: Tab) => {
 					browser.destroyTab(tab);
@@ -71,7 +72,10 @@ export function App(this: FC<{}>) {
 			/>
 			<Omnibar tab={use(browser.activetab)} />
 			{use(browser.activetab.url, browser.settings.showBookmarksBar)
-				.map(([u, pinned]) => pinned || u.href === "puter://newtab")
+				.map(
+					([u, pinned]) =>
+						pinned || u.href === `${INTERNAL_URL_PROTOCOL}//newtab`
+				)
 				.and(<BookmarksStrip />)}
 			<div class="separator"></div>
 			{this.children}

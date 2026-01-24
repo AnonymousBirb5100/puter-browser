@@ -1,6 +1,7 @@
 import { createDelegate, css, type FC, type Delegate } from "dreamland/core";
 import { setContextMenu } from "@components/Menu";
 import { browser } from "../../Browser";
+import { INTERNAL_URL_PROTOCOL } from "../../consts";
 import {
 	fetchGoogleTrending,
 	fetchSuggestions,
@@ -169,7 +170,7 @@ export function Omnibox(
 
 		// empty value == just represent the url
 		if (this.value == "") {
-			if (this.url.href != "puter://newtab") {
+			if (this.url.href != `${INTERNAL_URL_PROTOCOL}//newtab`) {
 				this.realvalue = this.value = trimUrl(this.url);
 			}
 		}
@@ -191,7 +192,7 @@ export function Omnibox(
 		this.justselected = true;
 		this.input.scrollLeft = 0;
 
-		if (this.url.href === "puter://newtab") {
+		if (this.url.href === `${INTERNAL_URL_PROTOCOL}//newtab`) {
 			// don't clutter the results if not on a newtab page
 			fetchGoogleTrending().then(() => {
 				// pick a random 3 from the cache
@@ -351,7 +352,7 @@ export function Omnibox(
 
 					if (e.key == "ArrowLeft") {
 						// move the cursor to the start
-						if (this.url.protocol == "puter:") {
+						if (this.url.protocol == INTERNAL_URL_PROTOCOL) {
 							this.input.setSelectionRange(0, 0);
 						} else {
 							let schemelen = this.url.protocol.length + 2;

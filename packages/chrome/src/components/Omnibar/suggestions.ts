@@ -1,5 +1,6 @@
 import { browser } from "../../Browser";
 import { bare } from "../../proxy/wisp";
+import { INTERNAL_URL_PROTOCOL } from "../../consts";
 
 import * as tldts from "tldts";
 
@@ -203,48 +204,105 @@ const fetchHistoryResults = (query: string): OmniboxResult[] => {
 	return results.slice(0, 5);
 };
 
-const addDirectResult = (query: string, results: OmniboxResult[]) => {
-	let directurl;
-	let directurltype: OmniboxResult["directUrlType"];
-	if (URL.canParse(query)) {
-		directurl = new URL(query);
-		if (directurl.hostname === "") {
-			// no hostname, so it's a direct schema url
-			if (directurl.protocol === "puter:") {
-				directurltype = "puter";
-			} else if (directurl.protocol === "about:") {
-				directurltype = "about";
-			} else {
-				directurltype = "protocol";
-			}
-		} else {
-			let parsed = tldts.parse(directurl.hostname);
-			if (parsed.isIp) {
-				directurltype = "ip";
-			} else {
-				directurltype = "domain";
-			}
+function omniboxParseUrl(raw: string):
+	| {
+			url: URL;
+			type: OmniboxResult["directUrlType"];
+	  }
+	| undefined {
+	// parsable urls, examples: https://example.com, http://127.0.0.1:8080, mailto:user@example.com, about:blank, ...
+	if (URL.canParse(raw)) {
+		let url = new URL(raw);
+		if (url.protocol === INTERNAL_URL_PROTOCOL && url.hostname !== "") {
+			// user entered puter://something
+			return {
+				url: url,
+				type: "puter",
+			};
 		}
+
+		if (url.hostname === "") {
+			// direct schema url
+			// mailto:user@example.com, about:blank
+
+			// because of the way browsers parse urls, localhost:8080, puter:settings, etc are parsed as direct schema urls
+			// where the user is expecting them to be parsed like http://localhost:8080, puter://settings, etc
+			// so we need to normalize it here
+
+			if (url.protocol === INTERNAL_URL_PROTOCOL) {
+				return {
+					url: new URL(`${INTERNAL_URL_PROTOCOL}//${url.pathname}`),
+					type: "puter",
+				};
+			}
+
+			// it feels a little odd to hardcode localhost here but it's not like we're worrying about mdns hosts or anything?
+			if (url.protocol === "localhost:") {
+				console.log(url.pathname, url);
+				// TODO: this parses `localhost:` as `localhost` when it really should resolve to a protocol url
+				return {
+					url: new URL(`http://${url.protocol}${url.pathname}`),
+					type: "ip",
+				};
+			}
+
+			// about: actually IS a protocol url, it's just a special one
+			if (url.protocol === "about:") {
+				return {
+					url: url,
+					type: "about",
+				};
+			}
+
+			// if we get here, it should be interpreted as a protocol url like mailto:
+			// TODO: maybe something weird like `asd:x` should have the google search result first, then the direct schema result?
+			return {
+				url: url,
+				type: "protocol",
+			};
+		}
+
+		// it's a normal url. still run tldts to see if it's an ip or domain
+		let parsed = tldts.parse(url.hostname);
+		return {
+			url: url,
+			type: parsed.isIp ? "ip" : "domain",
+		};
 	} else {
-		let parsed = tldts.parse(query);
+		// it's not a valid url, but it might be a domain or ip
+		// examples: `domain.com`, `domain.com/path`, `127.0.0.1:8080`, `asdf`
+
+		// this needs to be handled specially
+		if (raw === "localhost") {
+			return {
+				url: new URL("http://localhost"),
+				type: "ip",
+			};
+		}
+
+		let parsed = tldts.parse(raw);
 		if ((parsed.domain && parsed.isIcann) || parsed.isIp) {
 			// TODO: this probably isn't right for all cases
 			// i think typing in `://a.com` would break it because it's an invalid url but passes tldts
 			// but tldts doesn't parse path/port/schema so we can't use its parser
-			directurl = new URL("https://" + query);
-			if (parsed.isIp) {
-				directurltype = "ip";
-			} else {
-				directurltype = "domain";
-			}
+			return {
+				url: new URL("https://" + raw),
+				type: parsed.isIp ? "ip" : "domain",
+			};
 		}
-	}
 
-	if (directurl) {
+		// it's nothing!
+		return undefined;
+	}
+}
+
+const addDirectResult = (query: string, results: OmniboxResult[]) => {
+	let parsed = omniboxParseUrl(query);
+	if (parsed) {
 		results.unshift({
 			kind: "direct",
-			url: directurl,
-			directUrlType: directurltype,
+			url: parsed.url,
+			directUrlType: parsed.type,
 			title: null,
 			favicon: null,
 		});

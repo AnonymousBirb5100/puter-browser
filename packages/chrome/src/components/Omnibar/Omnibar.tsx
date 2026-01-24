@@ -26,6 +26,7 @@ import { isPuter, puterBranding } from "../../main";
 import { DownloadsPopup } from "@components/DownloadsPopup";
 import { CircularProgress } from "@components/Omnibar/CircularProgress";
 import { ReportBrokenSiteModal } from "@components/ReportBrokenSiteModal";
+import { INTERNAL_URL_PROTOCOL } from "../../consts";
 
 export const animateDownloadFly = createDelegate<void>();
 export const showDownloadsPopup = createDelegate<void>();
@@ -80,7 +81,7 @@ export function Omnibar(this: FC<{ tab: Tab }>) {
 						icon: iconTime,
 						label: "Show Full History",
 						action: () => {
-							browser.newTab(new URL("puter://history"));
+							browser.newTab(new URL(`${INTERNAL_URL_PROTOCOL}//history`));
 						},
 					},
 				]
@@ -177,7 +178,10 @@ export function Omnibar(this: FC<{ tab: Tab }>) {
 							{
 								label: "New Tab",
 								action: () => {
-									browser.newTab(new URL("puter://newtab"), true);
+									browser.newTab(
+										new URL(`${INTERNAL_URL_PROTOCOL}//newtab`),
+										true
+									);
 								},
 								icon: iconNew,
 							},
@@ -185,14 +189,16 @@ export function Omnibar(this: FC<{ tab: Tab }>) {
 							{
 								label: "History",
 								action: () => {
-									browser.newTab(new URL("puter://history"));
+									browser.newTab(new URL(`${INTERNAL_URL_PROTOCOL}//history`));
 								},
 								icon: iconTime,
 							},
 							{
 								label: "Downloads",
 								action: () => {
-									browser.newTab(new URL("puter://downloads"));
+									browser.newTab(
+										new URL(`${INTERNAL_URL_PROTOCOL}//downloads`)
+									);
 								},
 								icon: iconDownload,
 							},
@@ -200,12 +206,13 @@ export function Omnibar(this: FC<{ tab: Tab }>) {
 							{
 								label: "About",
 								action: () => {
-									browser.newTab(new URL("puter://version"));
+									browser.newTab(new URL(`${INTERNAL_URL_PROTOCOL}//version`));
 								},
 								icon: iconInfo,
 							},
 
-							puterBranding && browser.activetab.url.protocol !== "puter:"
+							puterBranding &&
+							browser.activetab.url.protocol !== INTERNAL_URL_PROTOCOL
 								? {
 										label: "Report Broken Site",
 										action: () => {
@@ -217,7 +224,7 @@ export function Omnibar(this: FC<{ tab: Tab }>) {
 							{
 								label: "Settings",
 								action: () => {
-									browser.newTab(new URL("puter://settings"));
+									browser.newTab(new URL(`${INTERNAL_URL_PROTOCOL}//settings`));
 								},
 								icon: iconSettings,
 							},

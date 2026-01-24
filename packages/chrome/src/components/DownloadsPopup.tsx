@@ -4,6 +4,7 @@ import { Icon } from "@components/Icon";
 import { closeMenu } from "@components/Menu";
 import { iconClose, iconFolder, iconOpen, iconPause } from "../icons";
 import { formatBytes } from "../utils";
+import { INTERNAL_URL_PROTOCOL } from "../consts";
 import { Button } from "@components/Button";
 import { Favicon } from "@components/Favicon";
 
@@ -84,7 +85,7 @@ export function DownloadsPopup() {
 			<div
 				class="footer"
 				on:click={() => {
-					browser.newTab(new URL("puter://downloads"));
+					browser.newTab(new URL(`${INTERNAL_URL_PROTOCOL}//downloads`));
 					closeMenu();
 				}}
 			>

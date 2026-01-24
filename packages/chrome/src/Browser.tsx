@@ -6,6 +6,7 @@ import type { SerializedHistoryState } from "./History";
 import { HistoryState } from "./History";
 import { focusOmnibox } from "@components/Omnibar/Omnibox";
 import { type AVAILABLE_SEARCH_ENGINES } from "@components/Omnibar/suggestions";
+import { INTERNAL_URL_PROTOCOL } from "./consts";
 
 import * as tldts from "tldts";
 import { isPuter } from "./main";
@@ -270,7 +271,8 @@ export class Browser extends StatefulClass {
 
 		if (this.activetab === tab) {
 			this.activetab =
-				this.tabs[0] || browser.newTab(new URL("puter://newtab"), true);
+				this.tabs[0] ||
+				browser.newTab(new URL(`${INTERNAL_URL_PROTOCOL}//newtab`), true);
 		}
 		popTab(tab);
 	}

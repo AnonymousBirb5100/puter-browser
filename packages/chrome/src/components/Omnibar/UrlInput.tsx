@@ -4,6 +4,7 @@ import { Icon } from "@components/Icon";
 import { SiteOptionsButton } from "@components/Omnibar/SiteOptionsButton";
 import { iconForwards, iconSearch } from "../../icons";
 import { splitUrl } from "../../utils";
+import { INTERNAL_URL_PROTOCOL } from "../../consts";
 import { OmnibarButton } from "@components/Omnibar/OmnibarButton";
 import { BookmarkButton } from "@components/Omnibar/BookmarkButton";
 
@@ -52,7 +53,8 @@ export function UrlInput(
 			{use(this.active, this.url, this.value)
 				.map(
 					([active, url, value]) =>
-						!active && !(!value && url.href == "puter://newtab")
+						!active &&
+						!(!value && url.href == `${INTERNAL_URL_PROTOCOL}//newtab`)
 				)
 				.and(
 					<span class="inactiveurl">
@@ -61,13 +63,17 @@ export function UrlInput(
 							.or(
 								use(this.url)
 									.map(
-										(u) => u.protocol === "puter:" || u.protocol === "about:"
+										(u) =>
+											u.protocol === INTERNAL_URL_PROTOCOL ||
+											u.protocol === "about:"
 									)
 									.and(
 										<>
 											<span class="subdomain">
 												{use(this.url).map((t) =>
-													t.protocol === "puter:" ? "puter://" : "about:"
+													t.protocol === INTERNAL_URL_PROTOCOL
+														? `${INTERNAL_URL_PROTOCOL}//`
+														: "about:"
 												)}
 											</span>
 											{/* even though it's actually a pathname, show it as a domain, since there is no hostname in direct schema urls */}
@@ -97,7 +103,7 @@ export function UrlInput(
 			{use(this.active, this.url, this.value)
 				.map(
 					([active, url, value]) =>
-						!value && !active && url.href == "puter://newtab"
+						!value && !active && url.href == `${INTERNAL_URL_PROTOCOL}//newtab`
 				)
 				.and(
 					<span class="placeholder">Search with Google or enter address</span>
