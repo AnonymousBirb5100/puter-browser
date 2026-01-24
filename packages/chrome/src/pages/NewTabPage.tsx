@@ -3,9 +3,9 @@ import type { Tab } from "../Tab";
 import { browser } from "../Browser";
 import { trimUrl } from "../components/Omnibar/utils";
 import { createMenu } from "../components/Menu";
-import { defaultFaviconUrl } from "../assets/favicon";
 import { Icon } from "../components/Icon";
 import { iconLink, iconOpen, iconSearch } from "../icons";
+import { Favicon } from "../components/Favicon";
 
 export function NewTabPage(this: FC<{ tab: Tab }>) {
 	return (
@@ -60,7 +60,7 @@ export function NewTabPage(this: FC<{ tab: Tab }>) {
 						>
 							<div class="suggestioninner">
 								<div class="circle">
-									<img src={entry.favicon || defaultFaviconUrl} alt="favicon" />
+									<Favicon url={entry.favicon} size="medium"></Favicon>
 								</div>
 								<span class="title">{entry.title || trimUrl(entry.url)}</span>
 							</div>
@@ -183,10 +183,6 @@ NewTabPage.style = css`
 		text-align: center;
 		white-space: nowrap;
 		line-height: 1.2;
-	}
-	.suggestion img {
-		width: 32px;
-		height: 32px;
 	}
 
 	.main {

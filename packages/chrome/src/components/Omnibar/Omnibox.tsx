@@ -1,28 +1,13 @@
-import {
-	createDelegate,
-	createState,
-	css,
-	type FC,
-	type Delegate,
-} from "dreamland/core";
-import { iconSearch, iconForwards, iconTrendingUp } from "../../icons";
-import { Icon } from "../Icon";
-import { OmnibarButton } from "./OmnibarButton";
+import { createDelegate, css, type FC, type Delegate } from "dreamland/core";
 import { setContextMenu } from "../Menu";
-import { defaultFaviconUrl } from "../../assets/favicon";
 import { browser } from "../../Browser";
-import { emToPx, splitUrl } from "../../utils";
 import {
 	fetchGoogleTrending,
 	fetchSuggestions,
 	trendingCached,
 	type OmniboxResult,
-	type TrendingQuery,
 } from "./suggestions";
 import { trimUrl } from "./utils";
-import { BookmarkButton } from "./BookmarkButton";
-import { SiteOptionsButton } from "./SiteOptionsButton";
-import { Favicon } from "../Favicon";
 import { UrlInput } from "./UrlInput";
 import { Suggestion } from "./Suggestion";
 import { requestUnfocusFrames } from "../Shell";

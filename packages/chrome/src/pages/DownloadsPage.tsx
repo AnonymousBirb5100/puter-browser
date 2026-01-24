@@ -4,7 +4,7 @@ import { browser } from "../Browser";
 import { iconLink, iconClose, iconFolder } from "../icons";
 import { Icon } from "../components/Icon";
 import { formatBytes } from "../utils";
-import { defaultFaviconUrl } from "../assets/favicon";
+import { Favicon } from "../components/Favicon";
 
 export function DownloadsPage(this: FC<{ tab: Tab }>) {
 	return (
@@ -23,7 +23,7 @@ export function DownloadsPage(this: FC<{ tab: Tab }>) {
 							}}
 						>
 							<span class="inner">
-								<img src={defaultFaviconUrl} alt="favicon" />
+								<Favicon url={null} size="medium"></Favicon>
 								<div class="text">
 									<span class="title">{entry.filename}</span>
 									<span class="url">{url.hostname}</span>

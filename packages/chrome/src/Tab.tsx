@@ -9,9 +9,8 @@ import { HistoryPage } from "./pages/HistoryPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { DownloadsPage } from "./pages/DownloadsPage";
 import { ProxyFrame } from "./proxy/ProxyFrame";
-import { defaultFaviconUrl } from "./assets/favicon";
 
-const requestInspectElement = createDelegate<[HTMLElement, Tab]>();
+// const requestInspectElement = createDelegate<[HTMLElement, Tab]>();
 
 export type SerializedTab = {
 	id: number;

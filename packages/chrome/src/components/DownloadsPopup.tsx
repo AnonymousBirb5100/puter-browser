@@ -4,8 +4,8 @@ import { Icon } from "./Icon";
 import { closeMenu } from "./Menu";
 import { iconClose, iconFolder, iconOpen, iconPause } from "../icons";
 import { formatBytes } from "../utils";
-import { defaultFaviconUrl } from "../assets/favicon";
 import { Button } from "./Button";
+import { Favicon } from "./Favicon";
 
 export function DownloadsPopup() {
 	return (
@@ -27,7 +27,7 @@ export function DownloadsPopup() {
 				{use(browser.sessionDownloadHistory).mapEach((b) => (
 					<div class="entry">
 						<div class="iconcontainer">
-							<img src={defaultFaviconUrl}></img>
+							<Favicon url={null} size="medium"></Favicon>
 						</div>
 						<div class="contents">
 							<span>{b.filename}</span>

@@ -1,19 +1,9 @@
-import {
-	iconClose,
-	iconAdd,
-	iconNew,
-	iconDuplicate,
-	iconRefresh,
-} from "../../icons";
+import { iconAdd, iconNew } from "../../icons";
 import { css, type FC } from "dreamland/core";
-import { Icon } from "../Icon";
-import { memoize } from "../../memoize";
 import { OmnibarButton } from "../Omnibar/OmnibarButton";
 import type { Tab } from "../../Tab";
 // import html2canvas from "html2canvas";
 import { setContextMenu } from "../Menu";
-import { browser, forceScreenshot, pushTab } from "../../Browser";
-import { defaultFaviconUrl } from "../../assets/favicon";
 import { DragTab } from "./DragTab";
 import { markDirty } from "../../storage";
 import { requestUnfocusFrames } from "../Shell";
