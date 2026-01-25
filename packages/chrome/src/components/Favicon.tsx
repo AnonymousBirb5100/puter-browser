@@ -1,19 +1,38 @@
 import { css, type FC } from "dreamland/core";
 import { defaultFaviconUrl } from "../assets/favicon";
+import { browser } from "../Browser";
 
 export function Favicon(
-	this: FC<{
-		url: string | null;
-		size?: "small" | "medium" | "large" | "unset";
-	}>
+	this: FC<
+		{
+			iconUrl?: string | null;
+			domain?: string | null;
+			size?: "small" | "medium" | "large" | "unset";
+		},
+		{
+			url: string | undefined;
+		}
+	>
 ) {
 	this.size ||= "small";
-	return (
-		<img
-			src={use(this.url).map((u) => u || defaultFaviconUrl)}
-			class={use(this.size)}
-		></img>
-	);
+
+	use(this.iconUrl, this.domain).listen(([iconUrl, domain]) => {
+		if (iconUrl) {
+			if (this.url !== iconUrl) this.url = iconUrl;
+		} else if (domain) {
+			browser.fetchFavicon(domain).then((favicon) => {
+				if (favicon?.iconUrl !== this.url)
+					this.url = favicon?.iconUrl || defaultFaviconUrl;
+			});
+		} else {
+			if (this.url !== defaultFaviconUrl) this.url = defaultFaviconUrl;
+		}
+	});
+	// :(
+	this.domain = this.domain;
+	this.iconUrl = this.iconUrl;
+
+	return <img src={use(this.url)} class={use(this.size)}></img>;
 }
 Favicon.style = css`
 	:scope.small {

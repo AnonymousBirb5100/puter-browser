@@ -60,7 +60,7 @@ export function NewTabPage(this: FC<{ tab: Tab }>) {
 						>
 							<div class="suggestioninner">
 								<div class="circle">
-									<Favicon url={entry.favicon} size="medium"></Favicon>
+									<Favicon iconUrl={entry.favicon} size="medium"></Favicon>
 								</div>
 								<span class="title">{entry.title || trimUrl(entry.url)}</span>
 							</div>

@@ -39,6 +39,19 @@ export function Suggestion(
 ) {
 	let item = this.item;
 
+	const getResultIcon = () => {
+		switch (item.directUrlType) {
+			case "ip":
+				return iconDesktop;
+			case "puter":
+				return iconGlobe;
+			case "about":
+				return iconAbout;
+			case "protocol":
+				return iconLink;
+		}
+	};
+
 	return (
 		<div
 			class="overflowitem"
@@ -51,22 +64,12 @@ export function Suggestion(
 					<Icon icon={iconSearch}></Icon>
 				) : item.kind === "trending" ? (
 					<Icon icon={iconTrendingUp}></Icon>
-				) : item.kind === "direct" && item.directUrlType ? (
-					item.directUrlType === "domain" ? (
-						<Icon icon={iconGlobe}></Icon>
-					) : item.directUrlType === "ip" ? (
-						<Icon icon={iconDesktop}></Icon>
-					) : item.directUrlType === "puter" ? (
-						<Icon icon={iconCloud}></Icon>
-					) : item.directUrlType === "about" ? (
-						<Icon icon={iconAbout}></Icon>
-					) : item.directUrlType === "protocol" ? (
-						<Icon icon={iconLink}></Icon>
-					) : (
-						<Favicon url={item.favicon}></Favicon>
-					)
+				) : item.kind === "direct" &&
+				  item.directUrlType &&
+				  item.directUrlType !== "domain" ? (
+					<Icon icon={getResultIcon()!}></Icon>
 				) : (
-					<Favicon url={item.favicon}></Favicon>
+					<Favicon iconUrl={item.favicon} domain={item.url.hostname}></Favicon>
 				)}
 			</div>
 			<div

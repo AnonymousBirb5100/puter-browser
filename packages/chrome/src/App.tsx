@@ -9,7 +9,11 @@ import { getTheme } from "./themes";
 import { contexts } from "./proxy/scramjet";
 import { INTERNAL_URL_PROTOCOL } from "./consts";
 
-export function App(this: FC<{}>) {
+export function App(
+	this: FC<{
+		children: any;
+	}>
+) {
 	const applyTheme = () => {
 		const appearance = browser.settings.appearance;
 		const themeId = browser.settings.themeId;

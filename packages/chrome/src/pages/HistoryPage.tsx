@@ -19,8 +19,13 @@ export function HistoryPage(this: FC<{ tab: Tab }>) {
 								browser.newTab(entry.url);
 							}}
 						>
-							<span class="inner">
-								<Favicon url={entry.favicon} size="medium"></Favicon>
+							<span
+								class="inner"
+								x={(() => {
+									console.log(entry);
+								})()}
+							>
+								<Favicon iconUrl={entry.favicon} size="medium"></Favicon>
 								<span class="title">{entry.title || entry.url.href}</span>
 								<span class="url">{entry.url.hostname}</span>
 							</span>
