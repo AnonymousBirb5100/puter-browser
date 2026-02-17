@@ -21,9 +21,6 @@ on:
     paths-ignore: *ci_ignore_paths
   workflow_dispatch:
 
-env:
-  WASM_BINDGEN_VERSION: "0.2.105"
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -81,7 +78,6 @@ jobs:
       - name: Setup Rewriter Toolchain
         uses: ./.github/actions/setup-rewriter-toolchain
         with:
-          wasm-bindgen-version: ${{ env.WASM_BINDGEN_VERSION }}
           rewriter-path: packages/core/rewriter
           github-token: ${{ github.token }}
 

@@ -22,16 +22,10 @@ if [ -f out/.build-hash ] && [ -f ../../dist/scramjet.wasm ] && [ "$SRC_HASH" !=
   exit 0
 fi
 
-which cargo wasm-bindgen wasm-opt wasm-snip &> /dev/null || {
-	echo "Please install cargo, wasm-bindgen, wasm-opt from https://github.com/WebAssembly/binaryen, and wasm-snip from https://github.com/r58playz/wasm-snip!"
+which cargo wasm-opt wasm-snip &> /dev/null || {
+	echo "Please install cargo, wasm-opt from https://github.com/WebAssembly/binaryen, and wasm-snip from https://github.com/r58playz/wasm-snip!"
 	exit 1
 }
-
-WBG="wasm-bindgen 0.2.105"
-if ! [[ "$(wasm-bindgen -V)" =~ ^"$WBG" ]]; then
-	echo "Incorrect wasm-bindgen-cli version: '$(wasm-bindgen -V)' != '$WBG'"
-	exit 1
-fi
 
 (
 	export RUSTFLAGS='-Zlocation-detail=none -Zfmt-debug=none'
@@ -46,13 +40,9 @@ fi
 		-Z build-std=panic_abort,std -Z build-std-features=${STD_FEATURES} \
 		--no-default-features --features "$FEATURES"
 )
-wasm-bindgen --target web --out-dir out/ ../target/wasm32-unknown-unknown/release/wasm.wasm
 
-if [[ "$OSTYPE" == "darwin"* ]] || [[ "$OSTYPE" == "freebsd"* ]] || [[ "$OSTYPE" == "dragonfly"* ]]; then
-	sed -i '' 's/import.meta.url/""/g' out/wasm.js
-else
-	sed -i 's/import.meta.url/""/g' out/wasm.js
-fi
+mkdir -p out
+cp ../target/wasm32-unknown-unknown/release/wasm.wasm out/wasm_bg.wasm
 
 cd ../../
 
