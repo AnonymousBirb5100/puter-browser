@@ -108,6 +108,7 @@ export function rewriteUrl(
 	} else if (url.startsWith("blob:")) {
 		return context.prefix.href + url;
 	} else if (url.startsWith("data:")) {
+		return url;
 		const URL_MAX_LENGTH = 1024 * 1024 * 2;
 		const BUFFER = 1024;
 		// chrome will explode if you make a request to a service worker with a 2MB+ URL

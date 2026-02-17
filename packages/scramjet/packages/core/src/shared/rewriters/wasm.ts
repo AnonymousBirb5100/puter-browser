@@ -104,10 +104,15 @@ function allocString(value: string): { ptr: number; len: number } {
 	return allocBytes(textEncoder.encode(value));
 }
 
+const _decode = TextDecoder.prototype.decode;
+export function safeDecode(u8: Uint8Array) {
+	return _decode.call(textDecoder, u8);
+}
+
 function decode(ptr: number, len: number): string {
 	if (!ptr || !len) return "";
 	const exports = assertWasm();
-	return textDecoder.decode(new Uint8Array(exports.memory.buffer, ptr, len));
+	return safeDecode(new Uint8Array(exports.memory.buffer, ptr, len));
 }
 
 function free(ptr: number, len: number) {
@@ -319,7 +324,7 @@ function initWasm() {
 	if (![...wasm_u8.slice(0, 4)].every((x, i) => x === MAGIC[i]))
 		throw new Error(
 			"rewriter wasm does not have wasm magic (was it fetched correctly?)\nrewriter wasm contents: " +
-				textDecoder.decode(wasm_u8)
+				safeDecode(wasm_u8)
 		);
 
 	initSync(new WebAssembly.Module(wasm_u8 as unknown as BufferSource));

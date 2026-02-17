@@ -1,4 +1,4 @@
-import { flagEnabled, ScramjetContext } from "@/shared";
+import { flagEnabled, safeDecode, ScramjetContext } from "@/shared";
 import { URLMeta } from "@rewriters/url";
 
 import { getRewriter, JsRewriterOutput, textDecoder } from "@rewriters/wasm";
@@ -72,7 +72,7 @@ function rewriteJsWasm(
 		const { js, map, scramtag, errors } = out;
 
 		return {
-			js: typeof input === "string" ? textDecoder.decode(js) : js,
+			js: typeof input === "string" ? safeDecode(js) : js,
 			tag: scramtag,
 			map,
 			errors,
@@ -109,7 +109,7 @@ export function rewriteJs(
 				pushmap(Array.from(res.map), res.tag);
 			} else {
 				if (newjs instanceof Uint8Array) {
-					newjs = new TextDecoder().decode(newjs);
+					newjs = safeDecode(newjs);
 				}
 				const sourcemapfn = `${context.config.globals.pushsourcemapfn}([${res.map.join(",")}], "${res.tag}");`;
 
@@ -135,7 +135,7 @@ export function rewriteJs(
 			"failed rewriting js for",
 			url || "(unknown)",
 			err.message,
-			js instanceof Uint8Array ? textDecoder.decode(js) : js
+			js instanceof Uint8Array ? safeDecode(js) : js
 		);
 		if (flagEnabled("allowInvalidJs", context, meta.base)) {
 			return js;
