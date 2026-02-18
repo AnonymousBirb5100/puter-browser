@@ -2,7 +2,7 @@ import { rewriteUrl, unrewriteUrl } from "@rewriters/url";
 import { ScramjetClient } from "@client/index";
 import { unrewriteLinkHeader } from "./xmlhttprequest";
 
-export default function (client: ScramjetClient) {
+export default function (client: ScramjetClient, self: Self) {
 	client.Proxy("fetch", {
 		apply(ctx) {
 			if (typeof ctx.args[0] === "string" || ctx.args[0] instanceof URL) {
@@ -31,11 +31,12 @@ export default function (client: ScramjetClient) {
 		},
 	});
 
+	let Headersctor = self.Headers;
 	// TODO: this needs to be only for response objects created from a fetch
 	client.Trap("Response.prototype.headers", {
 		get(ctx) {
 			const headers = ctx.get() as Headers;
-			const newHeaders = new Headers();
+			const newHeaders = new Headersctor();
 
 			for (const [key, value] of headers.entries()) {
 				if (key.toLowerCase() === "link") {

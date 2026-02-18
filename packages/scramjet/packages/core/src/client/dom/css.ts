@@ -1,7 +1,7 @@
 import { rewriteCss, unrewriteCss } from "@rewriters/css";
 import { ScramjetClient } from "@client/index";
 
-export default function (client: ScramjetClient) {
+export default function (client: ScramjetClient, self: Self) {
 	client.Proxy("CSSStyleDeclaration.prototype.setProperty", {
 		apply(ctx) {
 			if (!ctx.args[1]) return;
@@ -60,6 +60,7 @@ export default function (client: ScramjetClient) {
 		},
 	});
 
+	let cssDeclarationProps = Object.keys(self.CSSStyleDeclaration.prototype);
 	client.Trap("HTMLElement.prototype.style", {
 		get(ctx) {
 			// unfortunate and dumb hack. we have to trap every property of this
@@ -79,7 +80,7 @@ export default function (client: ScramjetClient) {
 						});
 					}
 
-					if (prop in CSSStyleDeclaration.prototype) return value;
+					if (cssDeclarationProps.includes(prop as string)) return value;
 					if (!value) return value;
 
 					return unrewriteCss(value);

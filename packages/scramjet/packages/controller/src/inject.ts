@@ -1,6 +1,23 @@
 import type { CookieJar, ScramjetConfig } from "@mercuryworkshop/scramjet";
 import type * as ScramjetGlobal from "@mercuryworkshop/scramjet";
-declare const $scramjet: typeof ScramjetGlobal;
+
+declare global {
+	interface Window {
+		SCRAMJET?: string;
+	}
+}
+
+const scramjs = new TextDecoder().decode(
+	Uint8Array.from(atob(self.SCRAMJET!), (c) => c.charCodeAt(0))
+);
+const scrambrain = document.createElement("iframe");
+document.head.append(scrambrain);
+scrambrain.contentWindow!.window.eval(scramjs);
+const $scramjet: typeof ScramjetGlobal = (
+	scrambrain.contentWindow!.window as any
+).$scramjet;
+scrambrain.remove();
+delete self.SCRAMJET;
 
 import type {
 	RawHeaders,

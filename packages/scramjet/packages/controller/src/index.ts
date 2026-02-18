@@ -25,12 +25,14 @@ type Config = {
 	injectPath: string;
 	scramjetPath: string;
 	virtualWasmPath: string;
+	virtualScramjetPath: string;
 	prefix: string;
 };
 
 export const config: Config = {
 	prefix: "/~/sj/",
 	virtualWasmPath: "scramjet.wasm.js",
+	virtualScramjetPath: "scramjet-string.js",
 	injectPath: "/controller/controller.inject.js",
 	scramjetPath: "/scramjet/scramjet.js",
 	wasmPath: "/scramjet/scramjet.wasm",
@@ -47,6 +49,7 @@ const defaultCfg = {
 const frames: Record<string, Frame> = {};
 
 let wasmPayload: string | null = null;
+let scramjetPayload: string | null = null;
 
 function makeId(): string {
 	return Math.random().toString(36).substring(2, 10);
@@ -81,6 +84,17 @@ async function loadScramjetWasm() {
 	wasmAlreadyFetched = true;
 }
 
+function u8tob64(buf: ArrayBufferLike): string {
+	return btoa(
+		new Uint8Array(buf)
+			.reduce(
+				(data, byte) => (data.push(String.fromCharCode(byte)), data),
+				[] as any
+			)
+			.join("")
+	);
+}
+
 export class Controller {
 	id: string;
 	prefix: string;
@@ -105,18 +119,55 @@ export class Controller {
 				const frame = this.frames.find((f) => path.startsWith(f.prefix));
 				if (!frame) throw new Error("No frame found for request");
 
+				if (path === frame.prefix + config.virtualScramjetPath) {
+					if (!scramjetPayload) {
+						const resp = await fetch(config.scramjetPath);
+						let text = await resp.text();
+						// const sourceMappingURL = text.match(
+						// 	/\/\/# sourceMappingURL=(.*)$/
+						// )?.[1]!;
+						// const sourcemapresp = await fetch(
+						// 	new URL(
+						// 		sourceMappingURL,
+						// 		new URL(config.scramjetPath, location.href)
+						// 	)
+						// );
+						// console.log(
+						// 	new URL(
+						// 		sourceMappingURL,
+						// 		new URL(config.scramjetPath, location.href)
+						// 	)
+						// );
+						// const sourcemap = await sourcemapresp.arrayBuffer();
+						// const sourcemapb64 = u8tob64(sourcemap);
+						// text = text.replace(
+						// 	/\/\/# sourceMappingURL=.*$/,
+						// 	`//# sourceMappingURL=data:application/json;base64,${sourcemapb64}\n//# sourceURL=scramjet.js`
+						// );
+						const b64 = u8tob64(new TextEncoder().encode(text).buffer);
+						let payload = "";
+						payload +=
+							"if ('document' in self && document.currentScript) { document.currentScript.remove(); }\n";
+						payload += `self.SCRAMJET = '${b64}';`;
+						scramjetPayload = payload;
+					}
+
+					return [
+						{
+							body: scramjetPayload,
+							status: 200,
+							statusText: "OK",
+							headers: [["Content-Type", "application/javascript"]],
+						},
+						[],
+					];
+				}
+
 				if (path === frame.prefix + config.virtualWasmPath) {
 					if (!wasmPayload) {
 						const resp = await fetch(config.wasmPath);
 						const buf = await resp.arrayBuffer();
-						const b64 = btoa(
-							new Uint8Array(buf)
-								.reduce(
-									(data, byte) => (data.push(String.fromCharCode(byte)), data),
-									[] as any
-								)
-								.join("")
-						);
+						const b64 = u8tob64(buf);
 
 						let payload = "";
 						payload +=
@@ -347,9 +398,9 @@ function yieldGetInjectScripts(
 			);
 		}
 		return [
-			script(config.scramjetPath),
-			script(config.injectPath),
+			script(prefix.href + config.virtualScramjetPath),
 			script(prefix.href + config.virtualWasmPath),
+			script(config.injectPath),
 			script(
 				"data:text/javascript;charset=utf-8;base64," +
 					base64Encode(`

@@ -44,7 +44,7 @@ export default function (client: ScramjetClient, self: any) {
 	if (!iswindow) return;
 	// DOM specific ones below here
 
-	Reflect.deleteProperty(Navigator.prototype, "serviceWorker");
+	Reflect.deleteProperty(self.Navigator.prototype, "serviceWorker");
 	del("MediaDevices.prototype.setCaptureHandleConfig");
 
 	// web bluetooth api
