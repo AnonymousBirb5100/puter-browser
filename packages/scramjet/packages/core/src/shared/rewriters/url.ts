@@ -93,7 +93,9 @@ export function rewriteUrl(
 	context: ScramjetContext,
 	meta: URLMeta
 ) {
-	if (url instanceof URL) url = url.toString();
+	// be tolerant - we could be recieving any url from any realm, even some kind of fake URL
+	// ideally we would be dealing with that *before* here, but alas
+	url = String(url);
 
 	if (url.startsWith("javascript:")) {
 		return (
@@ -148,7 +150,7 @@ export function rewriteUrl(
 }
 
 export function unrewriteUrl(url: string | URL, context: ScramjetContext) {
-	if (url instanceof URL) url = url.toString();
+	url = String(url);
 	// remove query string
 	// if (url.includes("?")) {
 	// 	url = url.split("?")[0];
