@@ -19,12 +19,12 @@ export default function (client: ScramjetClient, _self: Self) {
 		apply(ctx) {
 			if (ctx.args[0])
 				try {
-					ctx.args[0] = rewriteHtml(
-						ctx.args[0],
-						client.context,
-						client.meta,
-						false
-					);
+					ctx.args[0] = rewriteHtml(ctx.args[0], client.context, client.meta, {
+						loadScripts: false,
+						inline: true,
+						source: client.url.href,
+						apisource: "Document.prototype.write",
+					});
 				} catch {}
 		},
 	});
@@ -39,12 +39,12 @@ export default function (client: ScramjetClient, _self: Self) {
 		apply(ctx) {
 			if (ctx.args[0])
 				try {
-					ctx.args[0] = rewriteHtml(
-						ctx.args[0],
-						client.context,
-						client.meta,
-						false
-					);
+					ctx.args[0] = rewriteHtml(ctx.args[0], client.context, client.meta, {
+						loadScripts: false,
+						inline: true,
+						source: client.url.href,
+						apisource: "Document.prototype.writeln",
+					});
 				} catch {}
 		},
 	});
@@ -53,12 +53,12 @@ export default function (client: ScramjetClient, _self: Self) {
 		apply(ctx) {
 			if (ctx.args[0])
 				try {
-					ctx.args[0] = rewriteHtml(
-						ctx.args[0],
-						client.context,
-						client.meta,
-						false
-					);
+					ctx.args[0] = rewriteHtml(ctx.args[0], client.context, client.meta, {
+						loadScripts: false,
+						inline: true,
+						source: client.url.href,
+						apisource: "Document.prototype.parseHTMLUnsafe",
+					});
 				} catch {}
 		},
 	});

@@ -365,6 +365,7 @@ function yieldGetInjectScripts(
 	let getInjectScripts: ScramjetGlobal.ScramjetInterface["getInjectScripts"] = (
 		meta,
 		handler,
+		htmlcontext,
 		script
 	) => {
 		function base64Encode(text: string) {
@@ -394,6 +395,7 @@ function yieldGetInjectScripts(
 						yieldGetInjectScripts: ${yieldGetInjectScripts.toString()},
 						codecEncode: ${codecEncode.toString()},
 						codecDecode: ${codecDecode.toString()},
+						htmlcontext: ${JSON.stringify(htmlcontext)},
 					})
 				`)
 			),

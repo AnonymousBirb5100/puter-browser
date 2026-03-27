@@ -81,7 +81,12 @@ export const htmlRules: {
 					origin: new URL(meta.origin.origin),
 					base: new URL(meta.origin.origin),
 				},
-				true
+				{
+					loadScripts: true,
+					inline: true,
+					source: meta.origin.href,
+					apisource: "set HTMLIFrameElement.prototype.srcdoc",
+				}
 			),
 
 		// srcdoc

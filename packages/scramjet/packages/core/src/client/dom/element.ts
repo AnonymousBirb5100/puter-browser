@@ -321,7 +321,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 				newval = rewriteCss(value, client.context, client.meta);
 			} else {
 				try {
-					newval = rewriteHtml(value, client.context, client.meta);
+					newval = rewriteHtml(value, client.context, client.meta, {
+						loadScripts: false,
+						inline: true,
+						source: client.url.href,
+						apisource: "set Element.prototype.innerHTML",
+					});
 				} catch {
 					newval = value;
 				}
@@ -402,7 +407,14 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Trap("Element.prototype.outerHTML", {
 		set(ctx, value: string) {
-			ctx.set(rewriteHtml(value, client.context, client.meta));
+			ctx.set(
+				rewriteHtml(value, client.context, client.meta, {
+					loadScripts: false,
+					inline: true,
+					source: client.url.href,
+					apisource: "set Element.prototype.outerHTML",
+				})
+			);
 		},
 		get(ctx) {
 			return unrewriteHtml(ctx.get());
@@ -412,12 +424,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Proxy("Element.prototype.setHTMLUnsafe", {
 		apply(ctx) {
 			try {
-				ctx.args[0] = rewriteHtml(
-					ctx.args[0],
-					client.context,
-					client.meta,
-					false
-				);
+				ctx.args[0] = rewriteHtml(ctx.args[0], client.context, client.meta, {
+					loadScripts: false,
+					inline: true,
+					source: client.url.href,
+					apisource: "set Element.prototype.setHTMLUnsafe",
+				});
 			} catch {}
 		},
 	});
@@ -432,12 +444,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 		apply(ctx) {
 			if (ctx.args[1])
 				try {
-					ctx.args[1] = rewriteHtml(
-						ctx.args[1],
-						client.context,
-						client.meta,
-						false
-					);
+					ctx.args[1] = rewriteHtml(ctx.args[1], client.context, client.meta, {
+						loadScripts: false,
+						inline: true,
+						source: client.url.href,
+						apisource: "set Element.prototype.insertAdjacentHTML",
+					});
 				} catch {}
 		},
 	});
@@ -600,12 +612,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 		apply(ctx) {
 			if (ctx.args[1] === "text/html") {
 				try {
-					ctx.args[0] = rewriteHtml(
-						ctx.args[0],
-						client.context,
-						client.meta,
-						false
-					);
+					ctx.args[0] = rewriteHtml(ctx.args[0], client.context, client.meta, {
+						loadScripts: false,
+						inline: true,
+						source: client.url.href,
+						apisource: "DOMParser.prototype.parseFromString",
+					});
 				} catch {}
 			}
 		},

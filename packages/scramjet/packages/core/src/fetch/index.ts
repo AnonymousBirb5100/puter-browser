@@ -739,7 +739,12 @@ async function rewriteBody(
 				);
 				const htmlContent = new TextDecoder(encoding).decode(bytes);
 
-				return rewriteHtml(htmlContent, handler.context, parsed.meta, true);
+				return rewriteHtml(htmlContent, handler.context, parsed.meta, {
+					loadScripts: true,
+					inline: true,
+					source: parsed.url.href,
+					headers: response.rawHeaders,
+				});
 			} else {
 				return response.body;
 			}
