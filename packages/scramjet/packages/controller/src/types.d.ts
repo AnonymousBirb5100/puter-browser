@@ -59,6 +59,12 @@ export type TransportToController = {
 		},
 		TransferrableResponse,
 	];
+	sendSetCookie: [
+		{
+			url: string;
+			cookie: string;
+		},
+	];
 	connect: [
 		{
 			url: string;

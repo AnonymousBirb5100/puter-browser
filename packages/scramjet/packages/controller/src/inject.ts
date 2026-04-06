@@ -143,6 +143,13 @@ class RemoteTransport implements ProxyTransport {
 		});
 	}
 
+	async sendSetCookie(url: URL, cookie: string): Promise<void> {
+		await this.rpc.call("sendSetCookie", {
+			url: url.href,
+			cookie,
+		});
+	}
+
 	meta() {
 		return {};
 	}
@@ -207,6 +214,7 @@ class ExecutionContextWrapper {
 	cookieJar: CookieJarType;
 	transport: RemoteTransport;
 	clientId: string;
+	private handleServiceWorkerCookieMessage: (event: MessageEvent) => void;
 
 	constructor(
 		public global: typeof globalThis,
@@ -228,6 +236,46 @@ class ExecutionContextWrapper {
 		this.cookieJar.load(this.init.cookies);
 
 		this.clientId = init.clientId;
+
+		this.handleServiceWorkerCookieMessage = (event: MessageEvent) => {
+			if (
+				!event.data?.$controller$setCookie ||
+				typeof event.data.$controller$setCookie !== "object"
+			) {
+				return;
+			}
+
+			const payload = event.data.$controller$setCookie as {
+				url?: string;
+				cookie?: string;
+				id?: string;
+			};
+
+			if (
+				typeof payload.url === "string" &&
+				typeof payload.cookie === "string"
+			) {
+				try {
+					this.cookieJar.setCookies(payload.cookie, new URL(payload.url));
+				} catch {
+					// ignore malformed cookie sync payloads
+				}
+			}
+
+			if (typeof payload.id === "string") {
+				const targetSw = navigator.serviceWorker?.controller ?? sw;
+				targetSw?.postMessage({
+					$sw$setCookieDone: {
+						id: payload.id,
+					},
+				});
+			}
+		};
+
+		navigator.serviceWorker?.addEventListener(
+			"message",
+			this.handleServiceWorkerCookieMessage
+		);
 
 		this.injectScramjet();
 	}
@@ -260,12 +308,7 @@ class ExecutionContextWrapper {
 			context,
 			transport: this.transport,
 			sendSetCookie: async (url, cookie) => {
-				// sw.postMessage({
-				// 	$controller$setCookie: {
-				// 		url,
-				// 		cookie
-				// 	}
-				// });
+				await this.transport.sendSetCookie(url, cookie);
 			},
 			shouldPassthroughWebsocket: (url) => {
 				return url === "wss://anura.pro/";
@@ -276,6 +319,7 @@ class ExecutionContextWrapper {
 			hookSubcontext: (frameself, frame) => {
 				const context = new ExecutionContextWrapper(frameself, {
 					...this.init,
+					cookies: this.cookieJar.dump(),
 					// TODO: clientId will change over the lifetime once it recieves syncDocumentInit
 					// this is probably okay?
 					clientId: generateClientId(),

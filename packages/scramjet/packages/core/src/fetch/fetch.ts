@@ -349,7 +349,7 @@ async function handleCookies(
 	for (const [key, value] of rawHeaders) {
 		if (key.toLowerCase() !== "set-cookie") continue;
 
-		handler.context.cookieJar.setCookies([value], parsed.url);
+		handler.context.cookieJar.setCookies(value, parsed.url);
 		const promise = handler.sendSetCookie(parsed.url, value);
 
 		// we want the client to have the cookies before fetch returns

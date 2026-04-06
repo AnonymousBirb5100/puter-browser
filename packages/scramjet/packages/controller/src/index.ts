@@ -18,8 +18,6 @@ import {
 	type ProxyTransport,
 } from "@mercuryworkshop/proxy-transports";
 
-const cookieJar = new $scramjet.CookieJar();
-
 type Config = {
 	wasmPath: string;
 	injectPath: string;
@@ -191,6 +189,17 @@ export class Controller {
 						);
 						return [response, [response.body]];
 					},
+					sendSetCookie: async ({ url, cookie }) => {
+						if (typeof url !== "string" || typeof cookie !== "string") {
+							return;
+						}
+
+						try {
+							this.cookieJar.setCookies(cookie, new URL(url));
+						} catch {
+							// ignore malformed cookie sync payloads
+						}
+					},
 					connect: async ({ url, protocols, requestHeaders, port }) => {
 						let resolve: (arg: TransportToController["connect"][1]) => void;
 						const promise = new Promise<TransportToController["connect"][1]>(
@@ -291,6 +300,38 @@ export class Controller {
 		this.setupMessagePort();
 
 		navigator.serviceWorker.addEventListener("message", (e) => {
+			if (
+				e.data?.$controller$setCookie &&
+				typeof e.data.$controller$setCookie === "object"
+			) {
+				const payload = e.data.$controller$setCookie as {
+					url?: string;
+					cookie?: string;
+					id?: string;
+				};
+
+				if (
+					typeof payload.url === "string" &&
+					typeof payload.cookie === "string"
+				) {
+					try {
+						this.cookieJar.setCookies(payload.cookie, new URL(payload.url));
+					} catch {
+						// ignore malformed sync payloads
+					}
+				}
+
+				if (typeof payload.id === "string") {
+					this.serviceWorkerController.postMessage({
+						$sw$setCookieDone: {
+							id: payload.id,
+						},
+					});
+				}
+
+				return;
+			}
+
 			if (e.data.$controller$swrevive) {
 				// if we just spawned the service worker, it will send this even though it's not actually dead
 				// TODO: pretty jank, fix at some point
@@ -390,7 +431,7 @@ function yieldGetInjectScripts(
 					$scramjetController.load({
 						config: ${JSON.stringify(config)},
 						sjconfig: ${JSON.stringify(sjconfig)},
-						cookies: ${cookieJar.dump()},
+						cookies: ${JSON.stringify(cookieJar.dump())},
 						prefix: new URL("${prefix.href}"),
 						yieldGetInjectScripts: ${yieldGetInjectScripts.toString()},
 						codecEncode: ${codecEncode.toString()},
@@ -423,7 +464,7 @@ export class Frame {
 		};
 
 		return {
-			cookieJar,
+			cookieJar: this.controller.cookieJar,
 			prefix: new URL(this.prefix, location.href),
 			config: sjcfg,
 			interface: {
@@ -493,7 +534,12 @@ export class Frame {
 			crossOriginIsolated: self.crossOriginIsolated,
 			context: this.context,
 			transport: controller.transport,
-			async sendSetCookie(url, cookie) {},
+			async sendSetCookie(url, cookie) {
+				await controller.rpc.call("sendSetCookie", {
+					url: url.href,
+					cookie,
+				});
+			},
 			async fetchBlobUrl(url) {
 				return BareResponse.fromNativeResponse(await fetch(url));
 			},

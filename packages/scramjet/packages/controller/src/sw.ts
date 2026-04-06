@@ -77,7 +77,7 @@ class ControllerReference {
 								resolve();
 							}, 1000)
 						),
-						promises,
+						Promise.all(promises),
 					]);
 				},
 			},
