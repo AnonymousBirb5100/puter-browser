@@ -1,7 +1,7 @@
 // thnank you node unblocker guy
-import parse from "set-cookie-parser";
 import { JSON_parse, JSON_stringify, Object_values } from "@/shared/snapshot";
 import { _Date } from "./snapshot";
+import parse from "./set-cookie-parser";
 
 export type Cookie = {
 	name: string;
@@ -18,18 +18,16 @@ export type Cookie = {
 export class CookieJar {
 	private cookies: Record<string, Cookie> = {};
 
-	setCookies(cookies: string[], url: URL) {
-		for (const str of cookies) {
-			const parsed = parse(str, {
-				// this will fuck stuff up if you set it to true
-				decodeValues: false,
-			});
-			const domain = parsed.domain;
-			const sameSite = parsed.sameSite;
+	setCookies(cookieString: string, url: URL) {
+		const parsedCookies = parse(cookieString);
+
+		for (const parsedCookie of parsedCookies) {
+			const domain = parsedCookie.domain;
+			const sameSite = parsedCookie.sameSite;
 			const cookie: Cookie = {
 				domain,
 				sameSite,
-				...parsed[0],
+				...parsedCookie,
 			};
 
 			if (!cookie.domain) cookie.domain = "." + url.hostname;
