@@ -351,14 +351,7 @@ async function handleCookies(
 
 		handler.context.cookieJar.setCookies(value, parsed.url);
 		const promise = handler.sendSetCookie(parsed.url, value);
-
-		// we want the client to have the cookies before fetch returns
-		// for navigations though, there's no race since we send the entire cookie dump in the same request
-		if (
-			request.destination !== "document" &&
-			request.destination !== "iframe"
-		) {
-			await promise;
-		}
+		// TODO: batch this
+		await promise;
 	}
 }

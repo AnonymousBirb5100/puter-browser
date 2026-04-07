@@ -23,7 +23,7 @@ function isNonEmptyString(str: unknown): str is string {
 function hasCtlCharacters(value: string): boolean {
 	for (let i = 0; i < value.length; i++) {
 		const code = value.charCodeAt(i);
-		if ((code >= 0x00 && code <= 0x1f) || code === 0x7f) {
+		if (((code >= 0x00 && code <= 0x1f) || code === 0x7f) && code !== 0x09) {
 			return true;
 		}
 	}
@@ -37,10 +37,11 @@ function cookiePairByteLength(name: string, value: string): number {
 }
 
 function parseString(setCookieValue: string): ParsedCookie | null {
-	const parts = setCookieValue.split(";").filter(isNonEmptyString);
+	const parts = setCookieValue.split(";");
 
 	const nameValuePairStr = parts.shift();
 	if (!nameValuePairStr) return null;
+	if (!nameValuePairStr.trim()) return null;
 
 	const parsed = parseNameValuePair(nameValuePairStr);
 	if (!parsed) return null;
@@ -53,7 +54,7 @@ function parseString(setCookieValue: string): ParsedCookie | null {
 		value,
 	};
 
-	for (const part of parts) {
+	for (const part of parts.filter(isNonEmptyString)) {
 		const sides = part.split("=");
 		const key = (sides.shift() || "").trimStart().toLowerCase();
 		const sideValue = sides.join("=");
@@ -86,10 +87,18 @@ function parseNameValuePair(
 	const nameValueArr = nameValuePairStr.split("=");
 
 	if (nameValueArr.length > 1) {
-		name = nameValueArr.shift() || "";
-		value = nameValueArr.join("=");
+		name = (nameValueArr.shift() || "").trim();
+		value = nameValueArr.join("=").trim();
 	} else {
-		value = nameValuePairStr;
+		value = nameValuePairStr.trim();
+	}
+
+	if (!name && !value) {
+		return null;
+	}
+
+	if (!name && /^__secure-|^__host-/i.test(value)) {
+		return null;
 	}
 
 	if (hasCtlCharacters(name) || hasCtlCharacters(value)) {

@@ -12,6 +12,7 @@ import {
 } from ".";
 import { RawHeaders } from "@mercuryworkshop/proxy-transports";
 import { _URL, _Set } from "@/shared/snapshot";
+import { createReferrerString } from "./util";
 
 /**
  * Headers for security policy features that haven't been emulated yet
@@ -90,6 +91,9 @@ export async function rewriteResponseHeaders(
 	// scramjet runtime can use features that permissions-policy blocks
 	headers.delete("permissions-policy");
 
+	// we handle this ourselves
+	headers.delete("set-cookie");
+
 	if (
 		handler.crossOriginIsolated &&
 		[
@@ -150,61 +154,4 @@ export function rewriteRequestHeaders(
 	}
 
 	return headers;
-}
-
-export function createReferrerString(
-	clientUrl: _URL,
-	resource: _URL,
-	policy: string | null
-): string {
-	policy ||= "strict-origin-when-cross-origin";
-	const originIsHttps = clientUrl.protocol === "https:";
-	const destIsHttps = resource.protocol === "https:";
-
-	const isPotentialDowngrade = originIsHttps && !destIsHttps;
-
-	const isSameOrigin =
-		clientUrl.protocol === resource.protocol &&
-		clientUrl.host === resource.host;
-
-	const referrerOrigin = clientUrl.origin;
-
-	const referrerUrl = new _URL(clientUrl.href);
-	referrerUrl.hash = "";
-	const referrerUrlString = referrerUrl.href;
-
-	switch (policy) {
-		case "no-referrer":
-			return "";
-
-		case "no-referrer-when-downgrade":
-			if (isPotentialDowngrade) return "";
-			return referrerUrlString;
-
-		case "same-origin":
-			if (isSameOrigin) return referrerUrlString;
-			return "";
-
-		case "origin":
-			return referrerOrigin === "null" ? "" : referrerOrigin + "/";
-
-		case "strict-origin":
-			if (isPotentialDowngrade) return "";
-			return referrerOrigin === "null" ? "" : referrerOrigin + "/";
-
-		case "origin-when-cross-origin":
-			if (isSameOrigin) return referrerUrlString;
-			return referrerOrigin === "null" ? "" : referrerOrigin + "/";
-
-		case "strict-origin-when-cross-origin":
-			if (isSameOrigin) return referrerUrlString;
-			if (isPotentialDowngrade) return "";
-			return referrerOrigin === "null" ? "" : referrerOrigin + "/";
-
-		case "unsafe-url":
-			return referrerUrlString;
-
-		default:
-			return "";
-	}
 }
