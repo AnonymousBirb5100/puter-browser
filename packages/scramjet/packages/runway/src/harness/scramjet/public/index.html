@@ -74,10 +74,12 @@
 					serviceworker: sw,
 					transport,
 				});
+				window.__runwayController = controller;
 
 				await controller.ready;
 
 				scramjetFrame = controller.createFrame(testframe);
+				window.__runwayScramjetFrame = scramjetFrame;
 
 				statusEl.textContent = "Ready - waiting for test...";
 
