@@ -53,6 +53,41 @@ export const COOKIE_WPT_FILES = [
 	"cookies/resources/testharness-helpers.js",
 	"cookies/value/value-ctl.html",
 	"cookies/value/value.html",
+	// Prefix tests — HTTPS variants only (non-HTTPS variants test rejection on HTTP, which we skip)
+	"cookies/prefix/__host.document-cookie.https.html",
+	"cookies/prefix/__host.header.https.html",
+	"cookies/prefix/__secure.document-cookie.https.html",
+	"cookies/prefix/__secure.header.https.html",
+	// Size tests
+	"cookies/size/name-and-value.html",
+	// SameSite test pages (all .https.html — run over HTTP since Scramjet treats all as HTTPS)
+	"cookies/samesite/fetch.https.html",
+	"cookies/samesite/iframe.https.html",
+	"cookies/samesite/iframe.document.https.html",
+	"cookies/samesite/iframe-reload.https.html",
+	"cookies/samesite/img.https.html",
+	"cookies/samesite/form-get-blank.https.html",
+	"cookies/samesite/form-post-blank.https.html",
+	"cookies/samesite/form-get-blank-reload.https.html",
+	"cookies/samesite/form-post-blank-reload.https.html",
+	"cookies/samesite/window-open.https.html",
+	"cookies/samesite/window-open-reload.https.html",
+	"cookies/samesite/about-blank-toplevel.https.html",
+	"cookies/samesite/about-blank-nested.https.html",
+	"cookies/samesite/about-blank-subresource.https.html",
+	"cookies/samesite/sandbox-iframe-nested.https.html",
+	"cookies/samesite/sandbox-iframe-subresource.https.html",
+	"cookies/samesite/setcookie-lax.https.html",
+	"cookies/samesite/setcookie-navigation.https.html",
+	"cookies/samesite/multiple-samesite-attributes.https.html",
+	// SameSite resources (loaded by the test pages above, not run directly)
+	"cookies/samesite/resources/puppet.html",
+	"cookies/samesite/resources/echo-cookies.html",
+	"cookies/samesite/resources/navigate.html",
+	"cookies/samesite/resources/navigate-iframe.html",
+	"cookies/samesite/resources/iframe.document.html",
+	"cookies/samesite/resources/iframe-navigate-report.html",
+	"cookies/samesite/resources/iframe-subresource-report.html",
 ] as const;
 
 const COOKIE_WPT_FILE_SET = new Set(COOKIE_WPT_FILES);
@@ -60,7 +95,7 @@ const COOKIE_WPT_FILE_SET = new Set(COOKIE_WPT_FILES);
 export const COOKIE_WPT_PAGES = COOKIE_WPT_FILES.filter(
 	(file) =>
 		file.endsWith(".html") &&
-		!file.startsWith("cookies/resources/") &&
+		!file.includes("/resources/") &&
 		!file.endsWith(".headers")
 );
 

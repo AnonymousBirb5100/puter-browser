@@ -295,9 +295,10 @@ const WPT_TESTHARNESS_JS = `
 				failures,
 				loadFired,
 			});
-		}, 12000);
+		}, 60000);
 		setTimeout(maybeFinish, 0);
 	});
+
 })();
 `;
 
@@ -582,180 +583,445 @@ async function ensureServer() {
 	if (!sharedServerPromise) {
 		sharedServerPromise = (async () => {
 			let port = 0;
-			const server = http.createServer(async (request, response) => {
-				try {
-					const hostHeader = request.headers.host || "localhost";
-					const requestHost = stripPort(hostHeader);
-					const sameSiteHost =
-						requestHost === "localhost" ? "www.localhost" : "localhost";
-					const crossHost =
-						requestHost === "127.0.0.1" ? "localhost" : "127.0.0.1";
-					const requestUrl = new URL(
-						request.url || "/",
-						`http://${hostHeader}`
-					);
+			const server = http.createServer(
+				{
+					// Reject h2c upgrade attempts so browsers fall back to HTTP/1.1.
+					// Without this, <img> and other subresource loads fire onerror because
+					// Chromium treats a failed h2c upgrade differently from a plain HTTP/1.1 response.
+					shouldUpgradeCallback: (req: IncomingMessage) =>
+						req.headers.upgrade?.toLowerCase() === "websocket",
+				},
+				async (request, response) => {
+					try {
+						const hostHeader = request.headers.host || "localhost";
+						const requestHost = stripPort(hostHeader);
+						const sameSiteHost =
+							requestHost === "localhost" ? "www.localhost" : "localhost";
+						const crossHost =
+							requestHost === "127.0.0.1" ? "localhost" : "127.0.0.1";
+						const requestUrl = new URL(
+							request.url || "/",
+							`http://${hostHeader}`
+						);
 
-					if (requestUrl.pathname === "/resources/testharness.js") {
-						serve(response, WPT_TESTHARNESS_JS, {
-							"Content-Type": "application/javascript; charset=utf-8",
-						});
-						return;
-					}
-					if (requestUrl.pathname === "/resources/testharnessreport.js") {
-						serve(response, WPT_TESTHARNESSREPORT_JS, {
-							"Content-Type": "application/javascript; charset=utf-8",
-						});
-						return;
-					}
-					if (requestUrl.pathname === "/resources/testdriver.js") {
-						serve(response, WPT_TESTDRIVER_JS, {
-							"Content-Type": "application/javascript; charset=utf-8",
-						});
-						return;
-					}
-					if (requestUrl.pathname === "/resources/testdriver-vendor.js") {
-						serve(response, WPT_TESTDRIVER_VENDOR_JS, {
-							"Content-Type": "application/javascript; charset=utf-8",
-						});
-						return;
-					}
-					if (requestUrl.pathname === "/cookies/resources/cookie.py") {
-						const encoded = requestUrl.searchParams.get("set");
-						const setCookies: string[] = [];
-						if (encoded) {
-							const parsed = JSON.parse(encoded) as string | string[];
-							for (const cookie of Array.isArray(parsed) ? parsed : [parsed]) {
-								setCookies.push(cookie);
-							}
+						if (request.method === "OPTIONS") {
+							const origin = request.headers.origin;
+							response.writeHead(204, {
+								"Access-Control-Allow-Origin": origin ? String(origin) : "*",
+								"Access-Control-Allow-Credentials": "true",
+								"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+								"Access-Control-Allow-Headers": "Content-Type",
+								"Access-Control-Max-Age": "86400",
+							});
+							response.end();
+							return;
 						}
-						if (requestUrl.searchParams.has("location")) {
+
+						if (requestUrl.pathname === "/resources/testharness.js") {
+							serve(response, WPT_TESTHARNESS_JS, {
+								"Content-Type": "application/javascript; charset=utf-8",
+							});
+							return;
+						}
+						if (requestUrl.pathname === "/resources/testharnessreport.js") {
+							serve(response, WPT_TESTHARNESSREPORT_JS, {
+								"Content-Type": "application/javascript; charset=utf-8",
+							});
+							return;
+						}
+						if (requestUrl.pathname === "/resources/testdriver.js") {
+							serve(response, WPT_TESTDRIVER_JS, {
+								"Content-Type": "application/javascript; charset=utf-8",
+							});
+							return;
+						}
+						if (requestUrl.pathname === "/resources/testdriver-vendor.js") {
+							serve(response, WPT_TESTDRIVER_VENDOR_JS, {
+								"Content-Type": "application/javascript; charset=utf-8",
+							});
+							return;
+						}
+						if (requestUrl.pathname === "/cookies/resources/cookie.py") {
+							const encoded = requestUrl.searchParams.get("set");
+							const setCookies: string[] = [];
+							if (encoded) {
+								const parsed = JSON.parse(encoded) as string | string[];
+								for (const cookie of Array.isArray(parsed)
+									? parsed
+									: [parsed]) {
+									setCookies.push(cookie);
+								}
+							}
+							if (requestUrl.searchParams.has("location")) {
+								sendResponseWithCookies(
+									request,
+									response,
+									302,
+									'{"redirect": true}',
+									setCookies,
+									{ Location: requestUrl.searchParams.get("location") || "/" }
+								);
+								return;
+							}
 							sendResponseWithCookies(
 								request,
 								response,
-								302,
-								'{"redirect": true}',
-								setCookies,
-								{ Location: requestUrl.searchParams.get("location") || "/" }
+								200,
+								'{"success": true}',
+								setCookies
 							);
 							return;
 						}
-						sendResponseWithCookies(
-							request,
-							response,
-							200,
-							'{"success": true}',
-							setCookies
-						);
-						return;
-					}
-					if (requestUrl.pathname === "/cookies/resources/set.py") {
-						const cookie = decodeURIComponent(requestUrl.search.slice(1));
-						sendResponseWithCookies(
-							request,
-							response,
-							200,
-							'{"success": true}',
-							[cookie]
-						);
-						return;
-					}
-					if (requestUrl.pathname === "/cookies/resources/drop.py") {
-						const name = requestUrl.searchParams.get("name") || "";
-						sendResponseWithCookies(
-							request,
-							response,
-							200,
-							'{"success": true}',
-							[`${name}=; max-age=0; path=/`]
-						);
-						return;
-					}
-					if (requestUrl.pathname === "/cookies/resources/set-cookie.py") {
-						const name = requestUrl.searchParams.get("name") || "";
-						const cookiePath = requestUrl.searchParams.get("path") || "/";
-						const sameSite = requestUrl.searchParams.get("samesite");
-						const secure = requestUrl.searchParams.has("secure");
-						let cookie = `${name}=1; Path=${cookiePath}; Expires=09 Jun 2030 10:18:14 GMT`;
-						if (sameSite) cookie += `;SameSite=${sameSite}`;
-						if (secure) cookie += ";Secure";
-						sendResponseWithCookies(
-							request,
-							response,
-							200,
-							`{"success": true}`,
-							[cookie]
-						);
-						return;
-					}
-					if (
-						requestUrl.pathname === "/cookies/resources/list.py" ||
-						requestUrl.pathname === "/cookies/resources/echo-json.py"
-					) {
-						serve(response, JSON.stringify(parseCookieHeader(request)), {
-							...cookieResponseHeaders(request),
-							"Content-Type": "application/json; charset=utf-8",
-						});
-						return;
-					}
-					if (requestUrl.pathname === "/__runway_report") {
-						const token = requestUrl.searchParams.get("token") || "";
-						const callback = reportCallbacks.get(token);
-						if (!callback) {
-							response.writeHead(404, { "Access-Control-Allow-Origin": "*" });
-							response.end("Unknown runway report token");
+						if (requestUrl.pathname === "/cookies/resources/set.py") {
+							const cookie = decodeURIComponent(requestUrl.search.slice(1));
+							sendResponseWithCookies(
+								request,
+								response,
+								200,
+								'{"success": true}',
+								[cookie]
+							);
 							return;
 						}
-						let body = "";
-						request.on("data", (chunk) => {
-							body += String(chunk);
-						});
-						request.on("end", async () => {
-							const parsed = JSON.parse(body || "{}") as {
-								status?: "pass" | "fail";
-								message?: string;
-								details?: any;
-							};
-							if (parsed.status === "pass") {
-								await callback.pass(parsed.message, parsed.details);
-							} else {
-								await callback.fail(
-									parsed.message || "WPT reported failure",
-									parsed.details
-								);
+						if (requestUrl.pathname === "/cookies/resources/drop.py") {
+							const name = requestUrl.searchParams.get("name") || "";
+							sendResponseWithCookies(
+								request,
+								response,
+								200,
+								'{"success": true}',
+								[`${name}=; max-age=0; path=/`]
+							);
+							return;
+						}
+						if (requestUrl.pathname === "/cookies/resources/set-cookie.py") {
+							const name = requestUrl.searchParams.get("name") || "";
+							const cookiePath = requestUrl.searchParams.get("path") || "/";
+							const sameSite = requestUrl.searchParams.get("samesite");
+							const secure = requestUrl.searchParams.has("secure");
+							let cookie = `${name}=1; Path=${cookiePath}; Expires=09 Jun 2030 10:18:14 GMT`;
+							if (sameSite) cookie += `;SameSite=${sameSite}`;
+							if (secure) cookie += ";Secure";
+							sendResponseWithCookies(
+								request,
+								response,
+								200,
+								`{"success": true}`,
+								[cookie]
+							);
+							return;
+						}
+						if (
+							requestUrl.pathname === "/cookies/resources/list.py" ||
+							requestUrl.pathname === "/cookies/resources/echo-json.py"
+						) {
+							serve(response, JSON.stringify(parseCookieHeader(request)), {
+								...cookieResponseHeaders(request),
+								"Content-Type": "application/json; charset=utf-8",
+							});
+							return;
+						}
+						if (requestUrl.pathname === "/__runway_report") {
+							const token = requestUrl.searchParams.get("token") || "";
+							const callback = reportCallbacks.get(token);
+							if (!callback) {
+								response.writeHead(404, { "Access-Control-Allow-Origin": "*" });
+								response.end("Unknown runway report token");
+								return;
 							}
-							response.writeHead(204, { "Access-Control-Allow-Origin": "*" });
-							response.end();
+							let body = "";
+							request.on("data", (chunk) => {
+								body += String(chunk);
+							});
+							request.on("end", async () => {
+								const parsed = JSON.parse(body || "{}") as {
+									status?: "pass" | "fail";
+									message?: string;
+									details?: any;
+								};
+								if (parsed.status === "pass") {
+									await callback.pass(parsed.message, parsed.details);
+								} else {
+									await callback.fail(
+										parsed.message || "WPT reported failure",
+										parsed.details
+									);
+								}
+								response.writeHead(204, { "Access-Control-Allow-Origin": "*" });
+								response.end();
+							});
+							return;
+						}
+
+						// Intercept cookie-helper.sub.js to patch resetSameSiteCookies to
+						// reuse the puppet window per origin. Opening a new popup for every
+						// test takes ~10s each in Playwright, making large test files time out.
+						if (
+							requestUrl.pathname === "/cookies/resources/cookie-helper.sub.js"
+						) {
+							const resolvedPath = path.resolve(
+								vendorRoot,
+								"cookies/resources/cookie-helper.sub.js"
+							);
+							const source = await fs.readFile(resolvedPath, "utf8");
+							// Replace the entire resetSameSiteCookies function with a version
+							// that caches puppets per origin instead of opening/closing each time.
+							const patched = source.replace(
+								/async function resetSameSiteCookies\(origin, value\) \{[\s\S]*?\n\}/,
+								`// Runway patch: cache puppet windows per origin to avoid Playwright
+// popup creation overhead (~10s per popup open in headless Chrome).
+var __runwayPuppetCache = window.__runwayPuppetCache || (window.__runwayPuppetCache = {});
+async function resetSameSiteCookies(origin, value) {
+  let w = __runwayPuppetCache[origin];
+  if (!w || w.closed) {
+    w = window.open(origin + "/cookies/samesite/resources/puppet.html");
+    __runwayPuppetCache[origin] = w;
+    await wait_for_message("READY", origin);
+  }
+  w.postMessage({type: "drop", useOwnOrigin: true}, "*");
+  await wait_for_message("drop-complete", origin);
+  if (origin == self.origin) {
+    assert_dom_cookie("samesite_strict", value, false);
+    assert_dom_cookie("samesite_lax", value, false);
+    assert_dom_cookie("samesite_none", value, false);
+    assert_dom_cookie("samesite_unspecified", value, false);
+  }
+  w.postMessage({type: "set", value: value, useOwnOrigin: true}, "*");
+  await wait_for_message("set-complete", origin);
+  if (origin == self.origin) {
+    assert_dom_cookie("samesite_strict", value, true);
+    assert_dom_cookie("samesite_lax", value, true);
+    assert_dom_cookie("samesite_none", value, true);
+    assert_dom_cookie("samesite_unspecified", value, true);
+  }
+}`
+							);
+							serve(
+								response,
+								replaceTokens(patched, {
+									host: requestHost,
+									httpPort: port,
+									httpsPort: port,
+									sameSiteHost,
+									crossHost,
+								}),
+								{ "Content-Type": "application/javascript; charset=utf-8" }
+							);
+							return;
+						}
+
+						if (requestUrl.pathname === "/cookies/resources/setSameSite.py") {
+							const value = requestUrl.search.slice(1);
+							const setCookies = [
+								`samesite_strict=${value}; SameSite=Strict; path=/`,
+								`samesite_lax=${value}; SameSite=Lax; path=/`,
+								`samesite_none=${value}; SameSite=None; Secure; path=/`,
+								`samesite_unspecified=${value}; path=/`,
+							];
+							sendResponseWithCookies(request, response, 302, "", setCookies, {
+								Location: "/cookies/samesite/resources/echo-cookies.html",
+							});
+							return;
+						}
+
+						if (requestUrl.pathname === "/cookies/resources/dropSameSite.py") {
+							const setCookies = [
+								`samesite_strict=; max-age=0; path=/`,
+								`samesite_lax=; max-age=0; path=/`,
+								`samesite_none=; max-age=0; SameSite=None; Secure; path=/`,
+								`samesite_unspecified=; max-age=0; path=/`,
+							];
+							sendResponseWithCookies(
+								request,
+								response,
+								200,
+								'{"success":true}',
+								setCookies
+							);
+							return;
+						}
+
+						if (
+							requestUrl.pathname === "/cookies/resources/setSameSiteNone.py"
+						) {
+							const value = requestUrl.search.slice(1);
+							const setCookies = [
+								`samesite_none_insecure=${value}; SameSite=None; path=/`,
+								`samesite_none_secure=${value}; SameSite=None; Secure; path=/`,
+							];
+							sendResponseWithCookies(
+								request,
+								response,
+								200,
+								'{"success":true}',
+								setCookies
+							);
+							return;
+						}
+
+						if (
+							requestUrl.pathname === "/cookies/resources/dropSameSiteNone.py"
+						) {
+							const setCookies = [
+								`samesite_none_insecure=; max-age=0; path=/`,
+								`samesite_none_secure=; max-age=0; Secure; path=/`,
+							];
+							sendResponseWithCookies(
+								request,
+								response,
+								200,
+								'{"success":true}',
+								setCookies
+							);
+							return;
+						}
+
+						if (
+							requestUrl.pathname ===
+							"/cookies/resources/setSameSiteMultiAttribute.py"
+						) {
+							const value = requestUrl.search.slice(1);
+							const setCookies = [
+								`samesite_unsupported=${value}; SameSite=Unsupported; Secure; path=/`,
+								`samesite_unsupported_none=${value}; SameSite=Unsupported; SameSite=None; Secure; path=/`,
+								`samesite_unsupported_lax=${value}; SameSite=Unsupported; SameSite=Lax; path=/`,
+								`samesite_unsupported_strict=${value}; SameSite=Unsupported; SameSite=Strict; path=/`,
+								`samesite_none_unsupported=${value}; SameSite=None; SameSite=Unsupported; Secure; path=/`,
+								`samesite_lax_unsupported=${value}; SameSite=Lax; SameSite=Unsupported; Secure; path=/`,
+								`samesite_strict_unsupported=${value}; SameSite=Strict; SameSite=Unsupported; Secure; path=/`,
+								`samesite_lax_none=${value}; SameSite=Lax; SameSite=None; Secure; path=/`,
+								`samesite_lax_strict=${value}; SameSite=Lax; SameSite=Strict; path=/`,
+								`samesite_strict_lax=${value}; SameSite=Strict; SameSite=Lax; path=/`,
+							];
+							sendResponseWithCookies(request, response, 302, "", setCookies, {
+								Location: "/cookies/samesite/resources/echo-cookies.html",
+							});
+							return;
+						}
+
+						if (
+							requestUrl.pathname ===
+							"/cookies/resources/dropSameSiteMultiAttribute.py"
+						) {
+							const setCookies = [
+								`samesite_unsupported=; max-age=0; path=/`,
+								`samesite_unsupported_none=; max-age=0; path=/`,
+								`samesite_unsupported_lax=; max-age=0; path=/`,
+								`samesite_unsupported_strict=; max-age=0; path=/`,
+								`samesite_none_unsupported=; max-age=0; path=/`,
+								`samesite_lax_unsupported=; max-age=0; path=/`,
+								`samesite_strict_unsupported=; max-age=0; path=/`,
+								`samesite_lax_none=; max-age=0; path=/`,
+								`samesite_lax_strict=; max-age=0; path=/`,
+								`samesite_strict_lax=; max-age=0; path=/`,
+							];
+							sendResponseWithCookies(
+								request,
+								response,
+								200,
+								'{"success":true}',
+								setCookies
+							);
+							return;
+						}
+
+						if (
+							requestUrl.pathname ===
+							"/cookies/resources/redirectWithCORSHeaders.py"
+						) {
+							const location = requestUrl.searchParams.get("location") || "/";
+							const status = parseInt(
+								requestUrl.searchParams.get("status") || "302",
+								10
+							);
+							sendResponseWithCookies(request, response, status, "", [], {
+								Location: location,
+							});
+							return;
+						}
+
+						if (requestUrl.pathname === "/cookies/resources/postToParent.py") {
+							const cookies = parseCookieHeader(request);
+							const cookiesJson = JSON.stringify(cookies);
+							const html = `<!DOCTYPE html>
+<script>
+var data = ${cookiesJson};
+data.domcookies = document.cookie;
+data.type = "COOKIES";
+if (window.parent !== window) window.parent.postMessage(data, "*");
+if (window.top !== window && window.top !== window.parent) window.top.postMessage(data, "*");
+if (window.opener) window.opener.postMessage(data, "*");
+window.addEventListener("message", function(e) {
+  if (e.data === "reload") window.location.reload();
+});
+</script>`;
+							serve(response, html, {
+								...cookieResponseHeaders(request),
+								"Content-Type": "text/html; charset=utf-8",
+							});
+							return;
+						}
+
+						if (requestUrl.pathname === "/cookies/resources/imgIfMatch.py") {
+							const name = requestUrl.searchParams.get("name") || "";
+							const value = requestUrl.searchParams.get("value") || "";
+							const cookies = parseCookieHeader(request);
+							const imgCorsOrigin = request.headers.origin
+								? String(request.headers.origin)
+								: "*";
+							const imgCorsHeaders = {
+								"Cache-Control": "no-cache",
+								"Access-Control-Allow-Origin": imgCorsOrigin,
+								"Access-Control-Allow-Credentials": "true",
+							};
+							if (cookies[name] === value) {
+								const PNG_1x1 = Buffer.from(
+									"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+									"base64"
+								);
+								response.writeHead(200, {
+									"Content-Type": "image/png",
+									...imgCorsHeaders,
+								});
+								response.end(PNG_1x1);
+							} else {
+								response.writeHead(404, {
+									"Content-Type": "text/plain",
+									...imgCorsHeaders,
+								});
+								response.end("Cookie not found");
+							}
+							return;
+						}
+
+						if (
+							await serveVendoredFile(response, requestUrl.pathname, {
+								host: requestHost,
+								httpPort: port,
+								httpsPort: port,
+								sameSiteHost,
+								crossHost,
+							})
+						) {
+							return;
+						}
+
+						response.writeHead(404, {
+							"Content-Type": "text/plain; charset=utf-8",
 						});
-						return;
+						response.end("Not found");
+					} catch (error) {
+						response.writeHead(500, {
+							"Content-Type": "text/plain; charset=utf-8",
+						});
+						response.end(
+							error instanceof Error
+								? error.stack || error.message
+								: String(error)
+						);
 					}
-
-					if (
-						await serveVendoredFile(response, requestUrl.pathname, {
-							host: requestHost,
-							httpPort: port,
-							httpsPort: port,
-							sameSiteHost,
-							crossHost,
-						})
-					) {
-						return;
-					}
-
-					response.writeHead(404, {
-						"Content-Type": "text/plain; charset=utf-8",
-					});
-					response.end("Not found");
-				} catch (error) {
-					response.writeHead(500, {
-						"Content-Type": "text/plain; charset=utf-8",
-					});
-					response.end(
-						error instanceof Error
-							? error.stack || error.message
-							: String(error)
-					);
 				}
-			});
+			);
 			await new Promise<void>((resolve) => server.listen(0, resolve));
 			port = (server.address() as AddressInfo).port;
 			return { server, port };
@@ -773,7 +1039,7 @@ function cookiePageTest(entryPath: string): Test {
 		path: basePath,
 		scramjetOnly: true,
 		reloadHarness: true,
-		timeoutMs: 15000,
+		timeoutMs: 90000,
 		async start({ pass, fail }) {
 			const serverInfo = await ensureServer();
 			test.port = serverInfo.port;
