@@ -13,7 +13,7 @@ export type Cookie = {
 	hostOnly?: boolean;
 	secure?: boolean;
 	httpOnly?: boolean;
-	sameSite?: "strict" | "lax" | "none";
+	sameSite?: string; // "strict"|"lax"|"none" or titlecase variants from parsers
 };
 
 export class CookieJar {
@@ -75,7 +75,15 @@ export class CookieJar {
 		}
 	}
 
-	getCookies(url: URL, fromJs: boolean): string {
+	// SameSite enforcement context passed to getCookies.
+	// "strict"     – same-site request; all cookies allowed
+	// "lax"        – cross-site top-level GET/HEAD navigation; Strict blocked, Lax+None allowed
+	// "cross-site" – cross-site subresource or non-GET navigation; only None allowed
+	getCookies(
+		url: URL,
+		fromJs: boolean,
+		sameSiteContext: "strict" | "lax" | "cross-site" = "strict"
+	): string {
 		const now = new _Date();
 		const cookies = Object_values(this.cookies);
 
@@ -87,7 +95,9 @@ export class CookieJar {
 				continue;
 			}
 
-			if (cookie.secure && url.protocol !== "https:") continue;
+			// Scramjet proxies all origins as HTTPS (including those served over HTTP),
+			// so we don't enforce the Secure attribute based on protocol here.
+			// if (cookie.secure && url.protocol !== "https:") continue;
 			if (cookie.httpOnly && fromJs) continue;
 			if (!this.pathMatches(url.pathname, cookie.path)) continue;
 
@@ -96,6 +106,18 @@ export class CookieJar {
 			} else if (cookie.domain.startsWith(".")) {
 				if (!url.hostname.endsWith(cookie.domain.slice(1))) continue;
 			}
+
+			// SameSite enforcement — compare case-insensitively since parsers may
+			// return "Strict"/"Lax"/"None" (titlecase) or "strict"/"lax"/"none".
+			const cs = (cookie.sameSite ?? "lax").toLowerCase();
+			if (sameSiteContext === "cross-site") {
+				// Only SameSite=None cookies are sent cross-site
+				if (cs !== "none") continue;
+			} else if (sameSiteContext === "lax") {
+				// Lax top-level navigation: block Strict, allow Lax and None
+				if (cs === "strict") continue;
+			}
+			// "strict" context: all cookies allowed (no filtering)
 
 			validCookies.push(cookie);
 		}

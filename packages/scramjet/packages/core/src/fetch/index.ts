@@ -32,6 +32,9 @@ export interface ScramjetFetchParsed {
 	clientUrl?: _URL;
 	referrerSourceUrl?: _URL | null;
 	hadExtraParams: boolean;
+	/** True when this request follows a redirect chain that passed through a cross-site origin.
+	 *  Used to enforce SameSite "cross-site redirect poisoning" semantics. */
+	crossSiteRedirect: boolean;
 
 	meta: URLMeta;
 	scriptType: "module" | "regular";

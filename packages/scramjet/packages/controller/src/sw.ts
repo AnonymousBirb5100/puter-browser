@@ -68,17 +68,23 @@ class ControllerReference {
 							})
 						);
 					}
-					await Promise.race([
-						new Promise<void>((resolve) =>
-							setTimeout(() => {
-								console.error(
-									"timed out waiting for set cookie response (deadlock?)"
-								);
-								resolve();
-							}, 1000)
-						),
-						Promise.all(promises),
-					]);
+					// Wait for the first client to acknowledge the cookie sync.
+					// Using Promise.any (not Promise.all) so that extra SW clients created by
+					// window.open (e.g. test popup windows) don't cause timeouts — only the
+					// main controller client needs to respond.
+					if (promises.length > 0) {
+						await Promise.race([
+							new Promise<void>((resolve) =>
+								setTimeout(() => {
+									console.error(
+										"timed out waiting for set cookie response (deadlock?)"
+									);
+									resolve();
+								}, 1000)
+							),
+							Promise.any(promises).catch(() => {}),
+						]);
+					}
 				},
 			},
 			"tabchannel-" + id,
