@@ -2,6 +2,7 @@ import {
 	Object_entries,
 	Object_getOwnPropertyDescriptor,
 	Object_hasOwn,
+	Error,
 	String,
 } from "@/shared/snapshot";
 
@@ -161,8 +162,8 @@ export function assertKnownWebIDLTarget(
 ): asserts target is WebIDLClientApiTarget {
 	const known = kind === "proxy" ? proxyLookup[target] : trapLookup[target];
 	if (!known) {
-		throw new TypeError(
-			`[scramjet/webidl] unknown ${kind} target \"${target}\" - add it to src/client/webidl.ts`
+		throw new Error(
+			`[scramjet/webidl] unknown ${kind} target "${target}" - add it to src/client/webidl.ts`
 		);
 	}
 }
@@ -209,8 +210,8 @@ export function assertWebIDLTargetShape(
 ) {
 	const resolved = resolveTarget(root, target);
 	if (!resolved) {
-		throw new TypeError(
-			`[scramjet/webidl] missing target \"${target}\" in current realm`
+		throw new Error(
+			`[scramjet/webidl] missing target "${target}" in current realm`
 		);
 	}
 
@@ -220,16 +221,16 @@ export function assertWebIDLTargetShape(
 	);
 	if (kind === "proxy") {
 		if (!canProxy(descriptor)) {
-			throw new TypeError(
-				`[scramjet/webidl] target \"${target}\" is not callable/constructable`
+			throw new Error(
+				`[scramjet/webidl] target "${target}" is not callable/constructable`
 			);
 		}
 		return;
 	}
 
 	if (!canTrap(descriptor)) {
-		throw new TypeError(
-			`[scramjet/webidl] target \"${target}\" is not a trap-compatible property`
+		throw new Error(
+			`[scramjet/webidl] target "${target}" is not a trap-compatible property`
 		);
 	}
 }

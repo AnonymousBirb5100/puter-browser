@@ -616,42 +616,47 @@ export class ScramjetClient {
 	): void;
 	WebIDLProxy(name: string | readonly string[], handler: Proxy<any>): void {
 		if (Array_isArray(name)) {
-			for (const n of name) {
-				this.WebIDLProxy(n, handler);
+			for (const n of name as readonly string[]) {
+				this.WebIDLProxy(n as WebIDLClientApiTarget, handler);
 			}
 
 			return;
 		}
+		const target = name as string;
 
-		assertKnownWebIDLTarget(name, "proxy");
-		markWebIDLCoverage(this.webidlCoverage, name, "proxy");
-		if (hasWebIDLTarget(this.global, name)) {
-			assertWebIDLTargetShape(this.global, name, "proxy");
+		assertKnownWebIDLTarget(target, "proxy");
+		markWebIDLCoverage(this.webidlCoverage, target, "proxy");
+		if (hasWebIDLTarget(this.global, target)) {
+			assertWebIDLTargetShape(this.global, target, "proxy");
 		}
 
-		this.Proxy(name, handler);
+		this.Proxy(target, handler);
 	}
-	WebIDLTrap<T extends WebIDLClientApiTarget>(name: T, handler: Trap<T>): void;
+	WebIDLTrap<T extends WebIDLClientApiTarget>(
+		name: T,
+		handler: Trap<any>
+	): void;
 	WebIDLTrap<const T extends readonly WebIDLClientApiTarget[]>(
 		name: T,
-		handler: Trap<T[number]>
+		handler: Trap<any>
 	): void;
 	WebIDLTrap(name: string | readonly string[], descriptor: Trap<any>): void {
 		if (Array_isArray(name)) {
-			for (const n of name) {
-				this.WebIDLTrap(n, descriptor);
+			for (const n of name as readonly string[]) {
+				this.WebIDLTrap(n as WebIDLClientApiTarget, descriptor);
 			}
 
 			return;
 		}
+		const target = name as string;
 
-		assertKnownWebIDLTarget(name, "trap");
-		markWebIDLCoverage(this.webidlCoverage, name, "trap");
-		if (hasWebIDLTarget(this.global, name)) {
-			assertWebIDLTargetShape(this.global, name, "trap");
+		assertKnownWebIDLTarget(target, "trap");
+		markWebIDLCoverage(this.webidlCoverage, target, "trap");
+		if (hasWebIDLTarget(this.global, target)) {
+			assertWebIDLTargetShape(this.global, target, "trap");
 		}
 
-		this.Trap(name, descriptor);
+		this.Trap(target, descriptor);
 	}
 	getWebIDLInterceptorCoverage(): WebIDLCoverage {
 		return this.webidlCoverage;
