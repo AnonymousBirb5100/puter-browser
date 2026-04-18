@@ -3,7 +3,7 @@ import { UrlChangeEvent } from "@client/events";
 import { SCRAMJETCLIENT } from "@/symbols";
 
 export default function (client: ScramjetClient, _self: Self) {
-	client.WebIDLProxy(
+	client.idl.operation(
 		["History.prototype.pushState", "History.prototype.replaceState"],
 		{
 			apply(ctx) {

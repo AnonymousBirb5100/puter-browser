@@ -3,7 +3,7 @@ import { unrewriteLinkHeader } from "./xmlhttprequest";
 import { String } from "@/shared/snapshot";
 
 export default function (client: ScramjetClient) {
-	client.WebIDLProxy("fetch", {
+	client.idl.operation("fetch", {
 		apply(ctx) {
 			if (client.box.instanceof(ctx.args[0], "Request")) return;
 			const url = String(ctx.args[0]);
@@ -11,7 +11,7 @@ export default function (client: ScramjetClient) {
 		},
 	});
 
-	client.WebIDLProxy("Request", {
+	client.idl.operation("Request", {
 		construct(ctx) {
 			if (client.box.instanceof(ctx.args[0], "Request")) return;
 			const url = String(ctx.args[0]);
@@ -19,20 +19,20 @@ export default function (client: ScramjetClient) {
 		},
 	});
 
-	client.WebIDLTrap("Response.prototype.url", {
+	client.idl.attribute("Response.prototype.url", {
 		get(ctx) {
 			return client.unrewriteUrl(ctx.get() as string);
 		},
 	});
 
-	client.WebIDLTrap("Request.prototype.url", {
+	client.idl.attribute("Request.prototype.url", {
 		get(ctx) {
 			return client.unrewriteUrl(ctx.get() as string);
 		},
 	});
 
 	// TODO: this needs to be only for response objects created from a fetch
-	client.WebIDLTrap("Response.prototype.headers", {
+	client.idl.attribute("Response.prototype.headers", {
 		get(ctx) {
 			const headers = ctx.get() as Headers;
 			const newHeaders = new Headers();

@@ -178,7 +178,7 @@ export default function (client: ScramjetClient, self: Self) {
 
 	// when we rewrite javascript it will make function.toString leak internals
 	// this can lead to double rewrites which is bad
-	client.WebIDLProxy("Function.prototype.toString", {
+	client.idl.operation("Function.prototype.toString", {
 		apply(ctx) {
 			const before = performance.now();
 			doUnrewrite(client, ctx);

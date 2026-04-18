@@ -2,7 +2,7 @@ import { ScramjetClient } from "@client/index";
 import { Object_defineProperty } from "@/shared/snapshot";
 
 export default function (client: ScramjetClient) {
-	client.WebIDLProxy("StorageManager.prototype.getDirectory", {
+	client.idl.operation("StorageManager.prototype.getDirectory", {
 		apply(ctx) {
 			const rootPromise = ctx.call();
 			ctx.return(

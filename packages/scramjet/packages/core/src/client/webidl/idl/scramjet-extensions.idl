@@ -1,0 +1,19 @@
+// Supplemental WebIDL for APIs not currently represented in @webref/idl.
+
+[Exposed=Window]
+interface Audio : HTMLAudioElement {
+  constructor(optional DOMString src = "");
+};
+
+namespace Error {
+  readonly attribute any prepareStackTrace;
+};
+
+[Exposed=(Window,Worker)]
+interface WebSocketStream {
+  constructor(USVString url, optional any options = null);
+  readonly attribute Promise<any> opened;
+  readonly attribute Promise<any> closed;
+  readonly attribute USVString url;
+  Promise<undefined> close(optional any closeInfo = null);
+};

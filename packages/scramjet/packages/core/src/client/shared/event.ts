@@ -128,7 +128,7 @@ export default function (client: ScramjetClient, self: Self) {
 		});
 	}
 
-	client.WebIDLProxy("EventTarget.prototype.addEventListener", {
+	client.idl.operation("EventTarget.prototype.addEventListener", {
 		apply(ctx) {
 			if (typeof ctx.args[1] !== "function") return;
 
@@ -148,7 +148,7 @@ export default function (client: ScramjetClient, self: Self) {
 		},
 	});
 
-	client.WebIDLProxy("EventTarget.prototype.removeEventListener", {
+	client.idl.operation("EventTarget.prototype.removeEventListener", {
 		apply(ctx) {
 			if (typeof ctx.args[1] !== "function") return;
 

@@ -1,7 +1,7 @@
 import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient, _self: Self) {
-	client.WebIDLTrap("origin", {
+	client.idl.attribute("origin", {
 		get() {
 			// TODO: this isn't right!!
 			return client.url.origin;
@@ -11,7 +11,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		},
 	});
 
-	client.WebIDLTrap("Document.prototype.URL", {
+	client.idl.attribute("Document.prototype.URL", {
 		get() {
 			return client.url.href;
 		},
@@ -20,7 +20,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		},
 	});
 
-	client.WebIDLTrap("Document.prototype.documentURI", {
+	client.idl.attribute("Document.prototype.documentURI", {
 		get() {
 			return client.url.href;
 		},
@@ -29,7 +29,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		},
 	});
 
-	client.WebIDLTrap("Document.prototype.domain", {
+	client.idl.attribute("Document.prototype.domain", {
 		get() {
 			return client.url.hostname;
 		},

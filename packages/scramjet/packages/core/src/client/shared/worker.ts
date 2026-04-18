@@ -2,7 +2,7 @@ import { rewriteUrl } from "@rewriters/url";
 import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient, _self: GlobalThis) {
-	client.WebIDLProxy("Worker", {
+	client.idl.operation("Worker", {
 		construct(ctx) {
 			ctx.args[0] = client.rewriteUrl(ctx.args[0]) + "?dest=worker";
 
@@ -29,7 +29,7 @@ export default function (client: ScramjetClient, _self: GlobalThis) {
 	});
 
 	// sharedworkers can only be constructed from window
-	client.WebIDLProxy("SharedWorker", {
+	client.idl.operation("SharedWorker", {
 		construct(ctx) {
 			ctx.args[0] = client.rewriteUrl(ctx.args[0]) + "?dest=sharedworker";
 
@@ -64,7 +64,7 @@ export default function (client: ScramjetClient, _self: GlobalThis) {
 		},
 	});
 
-	client.WebIDLProxy("Worklet.prototype.addModule", {
+	client.idl.operation("Worklet.prototype.addModule", {
 		apply(ctx) {
 			if (ctx.args[0])
 				ctx.args[0] = client.rewriteUrl(ctx.args[0]) + "?dest=worklet";

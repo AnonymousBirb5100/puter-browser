@@ -3,14 +3,14 @@ import { ScramjetClient } from "@client/index";
 import { Reflect_apply, Reflect_get, Reflect_set } from "@/shared/snapshot";
 
 export default function (client: ScramjetClient) {
-	client.WebIDLProxy("CSSStyleDeclaration.prototype.setProperty", {
+	client.idl.operation("CSSStyleDeclaration.prototype.setProperty", {
 		apply(ctx) {
 			if (!ctx.args[1]) return;
 			ctx.args[1] = rewriteCss(ctx.args[1], client.context, client.meta);
 		},
 	});
 
-	client.WebIDLProxy("CSSStyleDeclaration.prototype.getPropertyValue", {
+	client.idl.operation("CSSStyleDeclaration.prototype.getPropertyValue", {
 		apply(ctx) {
 			const v = ctx.call();
 			if (!v) return v;
@@ -18,7 +18,7 @@ export default function (client: ScramjetClient) {
 		},
 	});
 
-	client.WebIDLTrap("CSSStyleDeclaration.prototype.cssText", {
+	client.idl.attribute("CSSStyleDeclaration.prototype.cssText", {
 		set(ctx, value: string) {
 			ctx.set(rewriteCss(value, client.context, client.meta));
 		},
@@ -27,25 +27,25 @@ export default function (client: ScramjetClient) {
 		},
 	});
 
-	client.WebIDLProxy("CSSStyleSheet.prototype.insertRule", {
+	client.idl.operation("CSSStyleSheet.prototype.insertRule", {
 		apply(ctx) {
 			ctx.args[0] = rewriteCss(ctx.args[0], client.context, client.meta);
 		},
 	});
 
-	client.WebIDLProxy("CSSStyleSheet.prototype.replace", {
+	client.idl.operation("CSSStyleSheet.prototype.replace", {
 		apply(ctx) {
 			ctx.args[0] = rewriteCss(ctx.args[0], client.context, client.meta);
 		},
 	});
 
-	client.WebIDLProxy("CSSStyleSheet.prototype.replaceSync", {
+	client.idl.operation("CSSStyleSheet.prototype.replaceSync", {
 		apply(ctx) {
 			ctx.args[0] = rewriteCss(ctx.args[0], client.context, client.meta);
 		},
 	});
 
-	client.WebIDLTrap("CSSRule.prototype.cssText", {
+	client.idl.attribute("CSSRule.prototype.cssText", {
 		set(ctx, value: string) {
 			ctx.set(rewriteCss(value, client.context, client.meta));
 		},
@@ -54,14 +54,14 @@ export default function (client: ScramjetClient) {
 		},
 	});
 
-	client.WebIDLProxy("CSSStyleValue.parse", {
+	client.idl.operation("CSSStyleValue.parse", {
 		apply(ctx) {
 			if (!ctx.args[1]) return;
 			ctx.args[1] = rewriteCss(ctx.args[1], client.context, client.meta);
 		},
 	});
 
-	client.WebIDLTrap("HTMLElement.prototype.style", {
+	client.idl.attribute("HTMLElement.prototype.style", {
 		get(ctx) {
 			// unfortunate and dumb hack. we have to trap every property of this
 			// since the prototype chain is fucked

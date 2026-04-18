@@ -25,7 +25,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		return writer;
 	}
 
-	client.WebIDLProxy(
+	client.idl.operation(
 		["Document.prototype.querySelector", "Document.prototype.querySelectorAll"],
 		{
 			apply(ctx) {
@@ -37,7 +37,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		}
 	);
 
-	client.WebIDLProxy("Document.prototype.write", {
+	client.idl.operation("Document.prototype.write", {
 		apply(ctx) {
 			const writer = getDocumentWriter(ctx.this);
 			ctx.return(
@@ -50,13 +50,13 @@ export default function (client: ScramjetClient, _self: Self) {
 		},
 	});
 
-	client.WebIDLProxy("Document.prototype.open", {
+	client.idl.operation("Document.prototype.open", {
 		apply(ctx) {
 			resetDocumentWriter(ctx.this);
 		},
 	});
 
-	client.WebIDLTrap("Document.prototype.referrer", {
+	client.idl.attribute("Document.prototype.referrer", {
 		get() {
 			if (!client.history) return "";
 			if (client.history.length < 2) return "";
@@ -70,7 +70,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		},
 	});
 
-	client.WebIDLProxy("Document.prototype.writeln", {
+	client.idl.operation("Document.prototype.writeln", {
 		apply(ctx) {
 			const writer = getDocumentWriter(ctx.this);
 			ctx.return(
@@ -83,7 +83,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		},
 	});
 
-	client.WebIDLProxy("Document.prototype.close", {
+	client.idl.operation("Document.prototype.close", {
 		apply(ctx) {
 			const writer = client.box.writeRewriters.get(ctx.this);
 			if (!writer) {
@@ -101,7 +101,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		},
 	});
 
-	client.WebIDLProxy("Document.prototype.parseHTMLUnsafe", {
+	client.idl.operation("Document.prototype.parseHTMLUnsafe", {
 		apply(ctx) {
 			ctx.args[0] = rewriteHtml(ctx.args[0], client.context, client.meta, {
 				loadScripts: false,

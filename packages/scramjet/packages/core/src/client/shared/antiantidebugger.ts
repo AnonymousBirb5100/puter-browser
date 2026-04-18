@@ -1,7 +1,7 @@
 import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient) {
-	client.WebIDLProxy("console.clear", {
+	client.idl.operation("console.clear", {
 		apply(ctx) {
 			// fuck you
 			ctx.return(undefined);
@@ -9,7 +9,7 @@ export default function (client: ScramjetClient) {
 	});
 
 	const log = console.log;
-	client.WebIDLTrap("console.log", {
+	client.idl.attribute("console.log", {
 		set(_ctx, _v) {
 			// is there a legitimate reason to let sites do this?
 		},

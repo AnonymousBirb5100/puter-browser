@@ -31,9 +31,12 @@ import {
 	assertKnownWebIDLTarget,
 	assertWebIDLTargetShape,
 	createWebIDLCoverage,
+	getWebIDLMetadata,
 	hasWebIDLTarget,
 	markWebIDLCoverage,
-	type WebIDLClientApiTarget,
+	type WebIDLAttributeTarget,
+	type WebIDLClientTarget,
+	type WebIDLOperationTarget,
 	type WebIDLCoverage,
 } from "@client/webidl";
 import {
@@ -224,6 +227,21 @@ export class ScramjetClient {
 		},
 	};
 	private webidlCoverage: WebIDLCoverage = createWebIDLCoverage();
+	idl = {
+		operation: <
+			T extends WebIDLOperationTarget | readonly WebIDLOperationTarget[],
+		>(
+			name: T,
+			handler: Proxy<any>
+		) => this.IDLOperation(name, handler),
+		attribute: <
+			T extends WebIDLAttributeTarget | readonly WebIDLAttributeTarget[],
+		>(
+			name: T,
+			handler: Trap<any>
+		) => this.IDLAttribute(name, handler),
+		metadata: (target: WebIDLClientTarget) => getWebIDLMetadata(target),
+	};
 
 	constructor(
 		public global: GlobalThis,
@@ -606,54 +624,66 @@ export class ScramjetClient {
 	// below are the utilities for proxying and trapping dom APIs
 	// you don't have to understand this it just makes the rest easier
 	// i'll document it eventually
-	WebIDLProxy<T extends WebIDLClientApiTarget>(
+	IDLOperation<T extends WebIDLOperationTarget>(
 		name: T,
 		handler: Proxy<T>
 	): void;
-	WebIDLProxy<const T extends readonly WebIDLClientApiTarget[]>(
+	IDLOperation<const T extends readonly WebIDLOperationTarget[]>(
 		name: T,
 		handler: Proxy<T[number]>
 	): void;
-	WebIDLProxy(name: string | readonly string[], handler: Proxy<any>): void {
+	IDLOperation(name: string | readonly string[], handler: Proxy<any>): void {
 		if (Array_isArray(name)) {
 			for (const n of name as readonly string[]) {
-				this.WebIDLProxy(n as WebIDLClientApiTarget, handler);
+				this.IDLOperation(n as WebIDLOperationTarget, handler);
 			}
 
 			return;
 		}
 		const target = name as string;
 
-		assertKnownWebIDLTarget(target, "proxy");
-		markWebIDLCoverage(this.webidlCoverage, target, "proxy");
+		assertKnownWebIDLTarget(target, "operation");
+		const metadata = getWebIDLMetadata(target as WebIDLClientTarget);
+		if (metadata.interceptorKind !== "operation") {
+			throw new Error(
+				`[scramjet/webidl] ${target} is registered as ${metadata.interceptorKind} in ${metadata.sourceFile}; use client.idl.${metadata.interceptorKind}`
+			);
+		}
+		markWebIDLCoverage(this.webidlCoverage, target, "operation");
 		if (hasWebIDLTarget(this.global, target)) {
-			assertWebIDLTargetShape(this.global, target, "proxy");
+			assertWebIDLTargetShape(this.global, target, "operation");
 		}
 
 		this.Proxy(target, handler);
 	}
-	WebIDLTrap<T extends WebIDLClientApiTarget>(
+	IDLAttribute<T extends WebIDLAttributeTarget>(
 		name: T,
 		handler: Trap<any>
 	): void;
-	WebIDLTrap<const T extends readonly WebIDLClientApiTarget[]>(
+	IDLAttribute<const T extends readonly WebIDLAttributeTarget[]>(
 		name: T,
 		handler: Trap<any>
 	): void;
-	WebIDLTrap(name: string | readonly string[], descriptor: Trap<any>): void {
+	IDLAttribute(name: string | readonly string[], descriptor: Trap<any>): void {
 		if (Array_isArray(name)) {
 			for (const n of name as readonly string[]) {
-				this.WebIDLTrap(n as WebIDLClientApiTarget, descriptor);
+				this.IDLAttribute(n as WebIDLAttributeTarget, descriptor);
 			}
 
 			return;
 		}
 		const target = name as string;
 
-		assertKnownWebIDLTarget(target, "trap");
-		markWebIDLCoverage(this.webidlCoverage, target, "trap");
+		assertKnownWebIDLTarget(target, "attribute");
+		const metadata = getWebIDLMetadata(target as WebIDLClientTarget);
+		if (metadata.interceptorKind !== "attribute") {
+			throw new Error(
+				`[scramjet/webidl] ${target} is registered as ${metadata.interceptorKind} in ${metadata.sourceFile}; use client.idl.${metadata.interceptorKind}`
+			);
+		}
+		markWebIDLCoverage(this.webidlCoverage, target, "attribute");
 		if (hasWebIDLTarget(this.global, target)) {
-			assertWebIDLTargetShape(this.global, target, "trap");
+			assertWebIDLTargetShape(this.global, target, "attribute");
 		}
 
 		this.Trap(target, descriptor);

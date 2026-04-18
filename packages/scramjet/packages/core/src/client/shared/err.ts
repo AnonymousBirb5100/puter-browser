@@ -41,7 +41,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		return t;
 	};
 
-	client.WebIDLProxy("Promise.prototype.catch", {
+	client.idl.operation("Promise.prototype.catch", {
 		apply(ctx) {
 			if (ctx.args[0])
 				ctx.args[0] = new Proxy(ctx.args[0], {

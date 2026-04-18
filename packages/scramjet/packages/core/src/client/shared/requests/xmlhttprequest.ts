@@ -10,7 +10,7 @@ export default function (client: ScramjetClient, self: Self) {
 	const ARGS = Symbol("xhr original args");
 	const HEADERS = Symbol("xhr headers");
 
-	client.WebIDLProxy("XMLHttpRequest.prototype.open", {
+	client.idl.operation("XMLHttpRequest.prototype.open", {
 		apply(ctx) {
 			if (ctx.args[1]) ctx.args[1] = client.rewriteUrl(ctx.args[1]);
 			if (ctx.args[2] === undefined) ctx.args[2] = true;
@@ -18,14 +18,14 @@ export default function (client: ScramjetClient, self: Self) {
 		},
 	});
 
-	client.WebIDLProxy("XMLHttpRequest.prototype.setRequestHeader", {
+	client.idl.operation("XMLHttpRequest.prototype.setRequestHeader", {
 		apply(ctx) {
 			const headers = ctx.this[HEADERS] || (ctx.this[HEADERS] = {});
 			headers[ctx.args[0]] = ctx.args[1];
 		},
 	});
 
-	client.WebIDLProxy("XMLHttpRequest.prototype.send", {
+	client.idl.operation("XMLHttpRequest.prototype.send", {
 		apply(ctx) {
 			const args = ctx.this[ARGS];
 			if (!args || args[2]) return;
@@ -120,13 +120,13 @@ export default function (client: ScramjetClient, self: Self) {
 		},
 	});
 
-	client.WebIDLTrap("XMLHttpRequest.prototype.responseURL", {
+	client.idl.attribute("XMLHttpRequest.prototype.responseURL", {
 		get(ctx) {
 			return client.unrewriteUrl(ctx.get() as string);
 		},
 	});
 
-	client.WebIDLProxy("XMLHttpRequest.prototype.getAllResponseHeaders", {
+	client.idl.operation("XMLHttpRequest.prototype.getAllResponseHeaders", {
 		apply(ctx) {
 			const headerstring = ctx.fn.call(ctx.this) as string;
 			if (!headerstring) return headerstring;
@@ -144,7 +144,7 @@ export default function (client: ScramjetClient, self: Self) {
 			ctx.return(headers.join("\r\n"));
 		},
 	});
-	client.WebIDLProxy("XMLHttpRequest.prototype.getResponseHeader", {
+	client.idl.operation("XMLHttpRequest.prototype.getResponseHeader", {
 		apply(ctx) {
 			const header = ctx.fn.call(ctx.this, ctx.args[0]) as string | null;
 			if (!header) return header;

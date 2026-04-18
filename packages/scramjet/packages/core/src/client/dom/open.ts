@@ -3,7 +3,7 @@ import { SCRAMJETCLIENT } from "@/symbols";
 import { String } from "@/shared/snapshot";
 
 export default function (client: ScramjetClient) {
-	client.WebIDLProxy("window.open", {
+	client.idl.operation("window.open", {
 		apply(ctx) {
 			// undefined opens an about:blank window, pass through
 			if (typeof ctx.args[0] !== "undefined") {
@@ -41,7 +41,7 @@ export default function (client: ScramjetClient) {
 		},
 	});
 
-	client.WebIDLTrap("window.frameElement", {
+	client.idl.attribute("window.frameElement", {
 		get(ctx) {
 			const f = ctx.get() as HTMLIFrameElement | null;
 			if (!f) return f;

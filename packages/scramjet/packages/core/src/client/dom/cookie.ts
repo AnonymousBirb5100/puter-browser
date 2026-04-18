@@ -1,7 +1,7 @@
 import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient, self: Self) {
-	client.WebIDLTrap("Document.prototype.cookie", {
+	client.idl.attribute("Document.prototype.cookie", {
 		get() {
 			return client.context.cookieJar.getCookies(client.url, true);
 		},

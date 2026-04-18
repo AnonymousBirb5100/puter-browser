@@ -1,15 +1,15 @@
 import { iswindow } from "@client/entry";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
-import { type WebIDLClientApiTarget } from "@client/webidl";
+import { type WebIDLOperationTarget } from "@client/webidl";
 import { Object_defineProperty } from "@/shared/snapshot";
 import { POLLUTANT } from "./realm";
 
 export default function (client: ScramjetClient, self: Self) {
 	if (iswindow)
-		client.WebIDLProxy("window.postMessage", {
+		client.idl.operation("window.postMessage", {
 			apply(ctx) {
-				// so we need to send the real origin here, since the recieving window can't possibly know.
+				// so we need to send the real origin here, since the receiving window can't possibly know.
 				// except, remember that this code is being ran in a different realm than the invoker, so if we ask our `client` it may give us the wrong origin
 				// if we were given any object that came from the real realm we can use that to get the real origin
 				// and this works in every case EXCEPT for the fact that all three arguments can be strings which are copied instead of cloned
@@ -69,14 +69,14 @@ export default function (client: ScramjetClient, self: Self) {
 			},
 		});
 
-	const toproxy: WebIDLClientApiTarget[] = [
+	const toproxy: WebIDLOperationTarget[] = [
 		"MessagePort.prototype.postMessage",
 	];
 
 	if (self.Worker) toproxy.push("Worker.prototype.postMessage");
 	if (!iswindow) toproxy.push("self.postMessage"); // only do the generic version if we're in a worker
 
-	client.WebIDLProxy(toproxy, {
+	client.idl.operation(toproxy, {
 		apply(ctx) {
 			// origin/source doesn't need to be preserved - it's null in the message event
 

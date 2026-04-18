@@ -4,7 +4,7 @@ import { String } from "@/shared/snapshot";
 
 export default function (client: ScramjetClient) {
 	// hide the origin from object urls from the page
-	client.WebIDLProxy("URL.createObjectURL", {
+	client.idl.operation("URL.createObjectURL", {
 		apply(ctx) {
 			const url = ctx.call();
 			if (url.startsWith("blob:")) {
@@ -15,7 +15,7 @@ export default function (client: ScramjetClient) {
 		},
 	});
 
-	client.WebIDLProxy("URL.revokeObjectURL", {
+	client.idl.operation("URL.revokeObjectURL", {
 		apply(ctx) {
 			setTimeout(() => {
 				// scramjet rewrites blob urls to pass through the service worker first

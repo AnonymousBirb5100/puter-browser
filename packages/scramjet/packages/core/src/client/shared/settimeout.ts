@@ -3,7 +3,7 @@ import { ScramjetClient } from "@client/index";
 import { String } from "@/shared/snapshot";
 
 export default function (client: ScramjetClient, self: Self) {
-	client.WebIDLProxy(["setTimeout", "setInterval"], {
+	client.idl.operation(["setTimeout", "setInterval"], {
 		apply(ctx) {
 			if (typeof ctx.args[0] !== "function") {
 				const code = String(ctx.args[0]);

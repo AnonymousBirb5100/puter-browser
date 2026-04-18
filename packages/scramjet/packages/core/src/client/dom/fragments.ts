@@ -16,7 +16,7 @@ function foreignContextForRange(
 }
 
 export default function (client: ScramjetClient, _self: Self) {
-	client.WebIDLProxy("Range.prototype.createContextualFragment", {
+	client.idl.operation("Range.prototype.createContextualFragment", {
 		apply(ctx) {
 			ctx.args[0] = rewriteHtml(ctx.args[0], client.context, client.meta, {
 				loadScripts: false,
