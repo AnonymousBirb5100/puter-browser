@@ -3,14 +3,14 @@ import { ScramjetClient } from "@client/index";
 import { Reflect_apply, Reflect_get, Reflect_set } from "@/shared/snapshot";
 
 export default function (client: ScramjetClient) {
-	client.Proxy("CSSStyleDeclaration.prototype.setProperty", {
+	client.WebIDLProxy("CSSStyleDeclaration.prototype.setProperty", {
 		apply(ctx) {
 			if (!ctx.args[1]) return;
 			ctx.args[1] = rewriteCss(ctx.args[1], client.context, client.meta);
 		},
 	});
 
-	client.Proxy("CSSStyleDeclaration.prototype.getPropertyValue", {
+	client.WebIDLProxy("CSSStyleDeclaration.prototype.getPropertyValue", {
 		apply(ctx) {
 			const v = ctx.call();
 			if (!v) return v;
@@ -18,7 +18,7 @@ export default function (client: ScramjetClient) {
 		},
 	});
 
-	client.Trap("CSSStyleDeclaration.prototype.cssText", {
+	client.WebIDLTrap("CSSStyleDeclaration.prototype.cssText", {
 		set(ctx, value: string) {
 			ctx.set(rewriteCss(value, client.context, client.meta));
 		},
@@ -27,25 +27,25 @@ export default function (client: ScramjetClient) {
 		},
 	});
 
-	client.Proxy("CSSStyleSheet.prototype.insertRule", {
+	client.WebIDLProxy("CSSStyleSheet.prototype.insertRule", {
 		apply(ctx) {
 			ctx.args[0] = rewriteCss(ctx.args[0], client.context, client.meta);
 		},
 	});
 
-	client.Proxy("CSSStyleSheet.prototype.replace", {
+	client.WebIDLProxy("CSSStyleSheet.prototype.replace", {
 		apply(ctx) {
 			ctx.args[0] = rewriteCss(ctx.args[0], client.context, client.meta);
 		},
 	});
 
-	client.Proxy("CSSStyleSheet.prototype.replaceSync", {
+	client.WebIDLProxy("CSSStyleSheet.prototype.replaceSync", {
 		apply(ctx) {
 			ctx.args[0] = rewriteCss(ctx.args[0], client.context, client.meta);
 		},
 	});
 
-	client.Trap("CSSRule.prototype.cssText", {
+	client.WebIDLTrap("CSSRule.prototype.cssText", {
 		set(ctx, value: string) {
 			ctx.set(rewriteCss(value, client.context, client.meta));
 		},
@@ -54,14 +54,14 @@ export default function (client: ScramjetClient) {
 		},
 	});
 
-	client.Proxy("CSSStyleValue.parse", {
+	client.WebIDLProxy("CSSStyleValue.parse", {
 		apply(ctx) {
 			if (!ctx.args[1]) return;
 			ctx.args[1] = rewriteCss(ctx.args[1], client.context, client.meta);
 		},
 	});
 
-	client.Trap("HTMLElement.prototype.style", {
+	client.WebIDLTrap("HTMLElement.prototype.style", {
 		get(ctx) {
 			// unfortunate and dumb hack. we have to trap every property of this
 			// since the prototype chain is fucked

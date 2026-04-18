@@ -1,13 +1,13 @@
 import { ScramjetClient } from "@client/index";
 
 export default function (client: ScramjetClient) {
-	client.Proxy("EventSource", {
+	client.WebIDLProxy("EventSource", {
 		construct(ctx) {
 			ctx.args[0] = client.rewriteUrl(ctx.args[0]);
 		},
 	});
 
-	client.Trap("EventSource.prototype.url", {
+	client.WebIDLTrap("EventSource.prototype.url", {
 		get(ctx) {
 			return client.unrewriteUrl(ctx.get());
 		},

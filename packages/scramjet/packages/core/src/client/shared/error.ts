@@ -30,7 +30,7 @@ export default function (client: ScramjetClient, _self: Self) {
 
 		return newstack;
 	};
-	client.Trap("Error.prepareStackTrace", {
+	client.WebIDLTrap("Error.prepareStackTrace", {
 		get(_ctx) {
 			// this is a funny js quirk. the getter is ran every time you type something in console
 			return closure;

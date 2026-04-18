@@ -29,7 +29,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		},
 	};
 
-	client.Proxy("Function", handler);
+	client.WebIDLProxy("Function", handler);
 
 	const RawFunction = client.natives.call(
 		"eval",

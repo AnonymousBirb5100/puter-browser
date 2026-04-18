@@ -10,7 +10,7 @@ export default function (client: ScramjetClient, self: Self) {
 	const ARGS = Symbol("xhr original args");
 	const HEADERS = Symbol("xhr headers");
 
-	client.Proxy("XMLHttpRequest.prototype.open", {
+	client.WebIDLProxy("XMLHttpRequest.prototype.open", {
 		apply(ctx) {
 			if (ctx.args[1]) ctx.args[1] = client.rewriteUrl(ctx.args[1]);
 			if (ctx.args[2] === undefined) ctx.args[2] = true;
@@ -18,14 +18,14 @@ export default function (client: ScramjetClient, self: Self) {
 		},
 	});
 
-	client.Proxy("XMLHttpRequest.prototype.setRequestHeader", {
+	client.WebIDLProxy("XMLHttpRequest.prototype.setRequestHeader", {
 		apply(ctx) {
 			const headers = ctx.this[HEADERS] || (ctx.this[HEADERS] = {});
 			headers[ctx.args[0]] = ctx.args[1];
 		},
 	});
 
-	client.Proxy("XMLHttpRequest.prototype.send", {
+	client.WebIDLProxy("XMLHttpRequest.prototype.send", {
 		apply(ctx) {
 			const args = ctx.this[ARGS];
 			if (!args || args[2]) return;
@@ -120,13 +120,13 @@ export default function (client: ScramjetClient, self: Self) {
 		},
 	});
 
-	client.Trap("XMLHttpRequest.prototype.responseURL", {
+	client.WebIDLTrap("XMLHttpRequest.prototype.responseURL", {
 		get(ctx) {
 			return client.unrewriteUrl(ctx.get() as string);
 		},
 	});
 
-	client.Proxy("XMLHttpRequest.prototype.getAllResponseHeaders", {
+	client.WebIDLProxy("XMLHttpRequest.prototype.getAllResponseHeaders", {
 		apply(ctx) {
 			const headerstring = ctx.fn.call(ctx.this) as string;
 			if (!headerstring) return headerstring;
@@ -144,7 +144,7 @@ export default function (client: ScramjetClient, self: Self) {
 			ctx.return(headers.join("\r\n"));
 		},
 	});
-	client.Proxy("XMLHttpRequest.prototype.getResponseHeader", {
+	client.WebIDLProxy("XMLHttpRequest.prototype.getResponseHeader", {
 		apply(ctx) {
 			const header = ctx.fn.call(ctx.this, ctx.args[0]) as string | null;
 			if (!header) return header;

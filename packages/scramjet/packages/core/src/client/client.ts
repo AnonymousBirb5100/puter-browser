@@ -28,6 +28,15 @@ import { Tap } from "@/Tap";
 import { TrackedHistoryState } from "@/fetch";
 import { AnyFunction } from "@/types";
 import {
+	assertKnownWebIDLTarget,
+	assertWebIDLTargetShape,
+	createWebIDLCoverage,
+	hasWebIDLTarget,
+	markWebIDLCoverage,
+	type WebIDLClientApiTarget,
+	type WebIDLCoverage,
+} from "@client/webidl";
+import {
 	_URL,
 	Error,
 	String,
@@ -214,6 +223,7 @@ export class ScramjetClient {
 			html: Tap.create<HtmlRewriterHooks>(),
 		},
 	};
+	private webidlCoverage: WebIDLCoverage = createWebIDLCoverage();
 
 	constructor(
 		public global: GlobalThis,
@@ -596,6 +606,56 @@ export class ScramjetClient {
 	// below are the utilities for proxying and trapping dom APIs
 	// you don't have to understand this it just makes the rest easier
 	// i'll document it eventually
+	WebIDLProxy<T extends WebIDLClientApiTarget>(
+		name: T,
+		handler: Proxy<T>
+	): void;
+	WebIDLProxy<const T extends readonly WebIDLClientApiTarget[]>(
+		name: T,
+		handler: Proxy<T[number]>
+	): void;
+	WebIDLProxy(name: string | readonly string[], handler: Proxy<any>): void {
+		if (Array_isArray(name)) {
+			for (const n of name) {
+				this.WebIDLProxy(n, handler);
+			}
+
+			return;
+		}
+
+		assertKnownWebIDLTarget(name, "proxy");
+		markWebIDLCoverage(this.webidlCoverage, name, "proxy");
+		if (hasWebIDLTarget(this.global, name)) {
+			assertWebIDLTargetShape(this.global, name, "proxy");
+		}
+
+		this.Proxy(name, handler);
+	}
+	WebIDLTrap<T extends WebIDLClientApiTarget>(name: T, handler: Trap<T>): void;
+	WebIDLTrap<const T extends readonly WebIDLClientApiTarget[]>(
+		name: T,
+		handler: Trap<T[number]>
+	): void;
+	WebIDLTrap(name: string | readonly string[], descriptor: Trap<any>): void {
+		if (Array_isArray(name)) {
+			for (const n of name) {
+				this.WebIDLTrap(n, descriptor);
+			}
+
+			return;
+		}
+
+		assertKnownWebIDLTarget(name, "trap");
+		markWebIDLCoverage(this.webidlCoverage, name, "trap");
+		if (hasWebIDLTarget(this.global, name)) {
+			assertWebIDLTargetShape(this.global, name, "trap");
+		}
+
+		this.Trap(name, descriptor);
+	}
+	getWebIDLInterceptorCoverage(): WebIDLCoverage {
+		return this.webidlCoverage;
+	}
 	Proxy<T extends string>(name: T, handler: Proxy<T>): void;
 	Proxy<const T extends readonly string[]>(
 		name: T,

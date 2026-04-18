@@ -158,7 +158,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		}
 	}
 
-	client.Trap("Node.prototype.baseURI", {
+	client.WebIDLTrap("Node.prototype.baseURI", {
 		get(ctx) {
 			const node = ctx.this as Node;
 			const doc = client.box.instanceof(node, "Document")
@@ -178,7 +178,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Proxy("Element.prototype.getAttribute", {
+	client.WebIDLProxy("Element.prototype.getAttribute", {
 		apply(ctx) {
 			const [name] = ctx.args;
 
@@ -201,7 +201,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Proxy("Element.prototype.getAttributeNames", {
+	client.WebIDLProxy("Element.prototype.getAttributeNames", {
 		apply(ctx) {
 			const attrNames = ctx.call() as string[];
 			const cleaned = attrNames.filter(
@@ -212,21 +212,21 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Proxy("Element.prototype.getAttributeNode", {
+	client.WebIDLProxy("Element.prototype.getAttributeNode", {
 		apply(ctx) {
 			if (String(ctx.args[0]).startsWith("scramjet-attr"))
 				return ctx.return(null);
 		},
 	});
 
-	client.Proxy("Element.prototype.hasAttribute", {
+	client.WebIDLProxy("Element.prototype.hasAttribute", {
 		apply(ctx) {
 			if (String(ctx.args[0]).startsWith("scramjet-attr"))
 				return ctx.return(false);
 		},
 	});
 
-	client.Proxy("Element.prototype.setAttribute", {
+	client.WebIDLProxy("Element.prototype.setAttribute", {
 		apply(ctx) {
 			const [name, value] = ctx.args;
 
@@ -258,11 +258,11 @@ export default function (client: ScramjetClient, self: typeof window) {
 	});
 
 	// i actually need to do something with this
-	client.Proxy("Element.prototype.setAttributeNode", {
+	client.WebIDLProxy("Element.prototype.setAttributeNode", {
 		apply(_ctx) {},
 	});
 
-	client.Proxy("Element.prototype.setAttributeNS", {
+	client.WebIDLProxy("Element.prototype.setAttributeNS", {
 		apply(ctx) {
 			const [_namespace, name, value] = ctx.args;
 
@@ -288,7 +288,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 	});
 
 	// this is separate from the regular href handlers because it returns an SVGAnimatedString
-	client.Trap("SVGAnimatedString.prototype.baseVal", {
+	client.WebIDLTrap("SVGAnimatedString.prototype.baseVal", {
 		get(ctx) {
 			const href = ctx.get() as string;
 			if (!href) return href;
@@ -299,7 +299,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			ctx.set(client.rewriteUrl(val));
 		},
 	});
-	client.Trap("SVGAnimatedString.prototype.animVal", {
+	client.WebIDLTrap("SVGAnimatedString.prototype.animVal", {
 		get(ctx) {
 			const href = ctx.get() as string;
 			if (!href) return href;
@@ -309,7 +309,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		// it has no setter
 	});
 
-	client.Proxy("Element.prototype.removeAttribute", {
+	client.WebIDLProxy("Element.prototype.removeAttribute", {
 		apply(ctx) {
 			if (String(ctx.args[0]).startsWith("scramjet-attr"))
 				return ctx.return(undefined);
@@ -325,7 +325,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Proxy("Element.prototype.toggleAttribute", {
+	client.WebIDLProxy("Element.prototype.toggleAttribute", {
 		apply(ctx) {
 			if (String(ctx.args[0]).startsWith("scramjet-attr"))
 				return ctx.return(false);
@@ -341,7 +341,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Trap("Element.prototype.innerHTML", {
+	client.WebIDLTrap("Element.prototype.innerHTML", {
 		set(ctx, value: string) {
 			let newval;
 			if (
@@ -400,7 +400,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Trap("Node.prototype.textContent", {
+	client.WebIDLTrap("Node.prototype.textContent", {
 		set(ctx, value: string) {
 			// TODO: box the instanceofs
 			if (
@@ -449,7 +449,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Trap("Element.prototype.outerHTML", {
+	client.WebIDLTrap("Element.prototype.outerHTML", {
 		set(ctx, value: string) {
 			ctx.set(
 				rewriteHtml(value, client.context, client.meta, {
@@ -465,7 +465,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Proxy("Element.prototype.setHTMLUnsafe", {
+	client.WebIDLProxy("Element.prototype.setHTMLUnsafe", {
 		apply(ctx) {
 			try {
 				ctx.args[0] = rewriteHtml(ctx.args[0], client.context, client.meta, {
@@ -479,13 +479,13 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Proxy("Element.prototype.getHTML", {
+	client.WebIDLProxy("Element.prototype.getHTML", {
 		apply(ctx) {
 			ctx.return(unrewriteHtml(ctx.call()));
 		},
 	});
 
-	client.Proxy("Element.prototype.insertAdjacentHTML", {
+	client.WebIDLProxy("Element.prototype.insertAdjacentHTML", {
 		apply(ctx) {
 			const html = String(ctx.args[1]);
 			ctx.args[1] = rewriteHtml(html, client.context, client.meta, {
@@ -499,7 +499,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 	});
 
 	// TODO: this needs to be done for all insert methods
-	// client.Proxy(["Element.prototype.appendChild", "Element.prototype.append"], {
+	// client.WebIDLProxy(["Element.prototype.appendChild", "Element.prototype.append"], {
 	// 	apply(ctx) {
 	// 		if (ctx.this instanceof self.HTMLStyleElement) {
 	// 			for (const node of ctx.args) {
@@ -533,12 +533,12 @@ export default function (client: ScramjetClient, self: typeof window) {
 	// 	},
 	// });
 
-	client.Proxy("Audio", {
+	client.WebIDLProxy("Audio", {
 		construct(ctx) {
 			if (ctx.args[0]) ctx.args[0] = client.rewriteUrl(ctx.args[0]);
 		},
 	});
-	client.Proxy("Text.prototype.appendData", {
+	client.WebIDLProxy("Text.prototype.appendData", {
 		apply(ctx) {
 			if (ctx.this.parentElement?.tagName === "STYLE") {
 				ctx.args[0] = rewriteCss(ctx.args[0], client.context, client.meta);
@@ -546,7 +546,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Proxy("Text.prototype.insertData", {
+	client.WebIDLProxy("Text.prototype.insertData", {
 		apply(ctx) {
 			if (ctx.this.parentElement?.tagName === "STYLE") {
 				ctx.args[1] = rewriteCss(ctx.args[1], client.context, client.meta);
@@ -554,7 +554,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Proxy("Text.prototype.replaceData", {
+	client.WebIDLProxy("Text.prototype.replaceData", {
 		apply(ctx) {
 			if (ctx.this.parentElement?.tagName === "STYLE") {
 				ctx.args[2] = rewriteCss(ctx.args[2], client.context, client.meta);
@@ -562,7 +562,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Trap("Text.prototype.wholeText", {
+	client.WebIDLTrap("Text.prototype.wholeText", {
 		get(ctx) {
 			if (ctx.this.parentElement?.tagName === "STYLE") {
 				return unrewriteCss(ctx.get() as string);
@@ -579,7 +579,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		},
 	});
 
-	client.Trap(
+	client.WebIDLTrap(
 		[
 			"HTMLIFrameElement.prototype.contentWindow",
 			"HTMLFrameElement.prototype.contentWindow",
@@ -611,7 +611,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		}
 	);
 
-	client.Trap(
+	client.WebIDLTrap(
 		[
 			"HTMLIFrameElement.prototype.contentDocument",
 			"HTMLFrameElement.prototype.contentDocument",
@@ -635,7 +635,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		}
 	);
 
-	client.Proxy(
+	client.WebIDLProxy(
 		[
 			"HTMLIFrameElement.prototype.getSVGDocument",
 			"HTMLObjectElement.prototype.getSVGDocument",
@@ -652,7 +652,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 		}
 	);
 
-	client.Proxy("DOMParser.prototype.parseFromString", {
+	client.WebIDLProxy("DOMParser.prototype.parseFromString", {
 		apply(ctx) {
 			const html = String(ctx.args[0]);
 			const mime = String(ctx.args[1]);

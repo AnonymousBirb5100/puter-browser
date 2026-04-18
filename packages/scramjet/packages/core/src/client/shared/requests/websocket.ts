@@ -29,7 +29,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 	const socketmap: WeakMap<WebSocket, FakeWebSocketState> = new WeakMap();
 	const socketstreammap: WeakMap<object, FakeWebSocketStreamState> =
 		new WeakMap();
-	client.Proxy("WebSocket", {
+	client.WebIDLProxy("WebSocket", {
 		construct(ctx) {
 			if (client.init.shouldPassthroughWebsocket?.(ctx.args[0])) {
 				return ctx.return(client.natives.construct("WebSocket", ...ctx.args));
@@ -124,7 +124,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 			ctx.return(fakeWebSocket);
 		},
 	});
-	client.Trap("WebSocket.prototype.binaryType", {
+	client.WebIDLTrap("WebSocket.prototype.binaryType", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
 			if (!ws) return ctx.get();
@@ -138,7 +138,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		},
 	});
 
-	client.Trap("WebSocket.prototype.bufferedAmount", {
+	client.WebIDLTrap("WebSocket.prototype.bufferedAmount", {
 		get(ctx) {
 			const ws = socketmap.get(this);
 			if (!ws) return ctx.get();
@@ -147,7 +147,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		},
 	});
 
-	client.Trap("WebSocket.prototype.extensions", {
+	client.WebIDLTrap("WebSocket.prototype.extensions", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
 			if (!ws) return ctx.get();
@@ -156,7 +156,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		},
 	});
 
-	client.Trap("WebSocket.prototype.onclose", {
+	client.WebIDLTrap("WebSocket.prototype.onclose", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
 			if (!ws) return ctx.get();
@@ -171,7 +171,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		},
 	});
 
-	client.Trap("WebSocket.prototype.onerror", {
+	client.WebIDLTrap("WebSocket.prototype.onerror", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
 			if (!ws) return ctx.get();
@@ -186,7 +186,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		},
 	});
 
-	client.Trap("WebSocket.prototype.onmessage", {
+	client.WebIDLTrap("WebSocket.prototype.onmessage", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
 			if (!ws) return ctx.get();
@@ -201,7 +201,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		},
 	});
 
-	client.Trap("WebSocket.prototype.onopen", {
+	client.WebIDLTrap("WebSocket.prototype.onopen", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
 			if (!ws) return ctx.get();
@@ -216,7 +216,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		},
 	});
 
-	client.Trap("WebSocket.prototype.url", {
+	client.WebIDLTrap("WebSocket.prototype.url", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
 			if (!ws) return ctx.get();
@@ -225,7 +225,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		},
 	});
 
-	client.Trap("WebSocket.prototype.protocol", {
+	client.WebIDLTrap("WebSocket.prototype.protocol", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
 			if (!ws) return ctx.get();
@@ -234,7 +234,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		},
 	});
 
-	client.Trap("WebSocket.prototype.readyState", {
+	client.WebIDLTrap("WebSocket.prototype.readyState", {
 		get(ctx) {
 			const ws = socketmap.get(ctx.this);
 			if (!ws) return ctx.get();
@@ -243,7 +243,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		},
 	});
 
-	client.Proxy("WebSocket.prototype.send", {
+	client.WebIDLProxy("WebSocket.prototype.send", {
 		apply(ctx) {
 			const ws = socketmap.get(ctx.this);
 			if (!ws) return;
@@ -252,7 +252,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		},
 	});
 
-	client.Proxy("WebSocket.prototype.close", {
+	client.WebIDLProxy("WebSocket.prototype.close", {
 		apply(ctx) {
 			const ws = socketmap.get(ctx.this);
 			if (!ws) return;
@@ -263,7 +263,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		},
 	});
 
-	client.Proxy("WebSocketStream", {
+	client.WebIDLProxy("WebSocketStream", {
 		construct(ctx) {
 			const fakeWebSocket = {};
 			Object.setPrototypeOf(fakeWebSocket, ctx.fn.prototype);
@@ -341,7 +341,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		},
 	});
 
-	client.Trap("WebSocketStream.prototype.closed", {
+	client.WebIDLTrap("WebSocketStream.prototype.closed", {
 		get(ctx) {
 			const ws = socketstreammap.get(ctx.this);
 
@@ -349,7 +349,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		},
 	});
 
-	client.Trap("WebSocketStream.prototype.opened", {
+	client.WebIDLTrap("WebSocketStream.prototype.opened", {
 		get(ctx) {
 			const ws = socketstreammap.get(ctx.this);
 
@@ -357,7 +357,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		},
 	});
 
-	client.Trap("WebSocketStream.prototype.url", {
+	client.WebIDLTrap("WebSocketStream.prototype.url", {
 		get(ctx) {
 			const ws = socketstreammap.get(ctx.this);
 
@@ -365,7 +365,7 @@ export default function (client: ScramjetClient, self: GlobalThis) {
 		},
 	});
 
-	client.Proxy("WebSocketStream.prototype.close", {
+	client.WebIDLProxy("WebSocketStream.prototype.close", {
 		apply(ctx) {
 			const ws = socketstreammap.get(ctx.this);
 			if (ctx.args[0]) {

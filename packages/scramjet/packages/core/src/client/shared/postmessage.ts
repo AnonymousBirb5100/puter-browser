@@ -1,12 +1,13 @@
 import { iswindow } from "@client/entry";
 import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
+import { type WebIDLClientApiTarget } from "@client/webidl";
 import { Object_defineProperty } from "@/shared/snapshot";
 import { POLLUTANT } from "./realm";
 
 export default function (client: ScramjetClient, self: Self) {
 	if (iswindow)
-		client.Proxy("window.postMessage", {
+		client.WebIDLProxy("window.postMessage", {
 			apply(ctx) {
 				// so we need to send the real origin here, since the recieving window can't possibly know.
 				// except, remember that this code is being ran in a different realm than the invoker, so if we ask our `client` it may give us the wrong origin
@@ -68,12 +69,14 @@ export default function (client: ScramjetClient, self: Self) {
 			},
 		});
 
-	const toproxy = ["MessagePort.prototype.postMessage"];
+	const toproxy: WebIDLClientApiTarget[] = [
+		"MessagePort.prototype.postMessage",
+	];
 
 	if (self.Worker) toproxy.push("Worker.prototype.postMessage");
 	if (!iswindow) toproxy.push("self.postMessage"); // only do the generic version if we're in a worker
 
-	client.Proxy(toproxy, {
+	client.WebIDLProxy(toproxy, {
 		apply(ctx) {
 			// origin/source doesn't need to be preserved - it's null in the message event
 

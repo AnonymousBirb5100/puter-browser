@@ -2,39 +2,39 @@ import { ScramjetClient } from "@client/index";
 import { String } from "@/shared/snapshot";
 
 export default function (client: ScramjetClient, _self: Self) {
-	client.Proxy("CacheStorage.prototype.open", {
+	client.WebIDLProxy("CacheStorage.prototype.open", {
 		apply(ctx) {
 			ctx.args[0] = `${client.url.origin}@${ctx.args[0]}`;
 		},
 	});
 
-	client.Proxy("CacheStorage.prototype.has", {
+	client.WebIDLProxy("CacheStorage.prototype.has", {
 		apply(ctx) {
 			ctx.args[0] = `${client.url.origin}@${ctx.args[0]}`;
 		},
 	});
 
-	client.Proxy("CacheStorage.prototype.match", {
+	client.WebIDLProxy("CacheStorage.prototype.match", {
 		apply(ctx) {
 			const url = String(ctx.args[0]);
 			ctx.args[0] = client.rewriteUrl(url);
 		},
 	});
 
-	client.Proxy("CacheStorage.prototype.delete", {
+	client.WebIDLProxy("CacheStorage.prototype.delete", {
 		apply(ctx) {
 			ctx.args[0] = `${client.url.origin}@${ctx.args[0]}`;
 		},
 	});
 
-	client.Proxy("Cache.prototype.add", {
+	client.WebIDLProxy("Cache.prototype.add", {
 		apply(ctx) {
 			const url = String(ctx.args[0]);
 			ctx.args[0] = client.rewriteUrl(url);
 		},
 	});
 
-	client.Proxy("Cache.prototype.addAll", {
+	client.WebIDLProxy("Cache.prototype.addAll", {
 		apply(ctx) {
 			const requests = [...ctx.args[0]];
 			for (let i = 0; i < requests.length; i++) {
@@ -45,35 +45,35 @@ export default function (client: ScramjetClient, _self: Self) {
 		},
 	});
 
-	client.Proxy("Cache.prototype.put", {
+	client.WebIDLProxy("Cache.prototype.put", {
 		apply(ctx) {
 			const url = String(ctx.args[0]);
 			ctx.args[0] = client.rewriteUrl(url);
 		},
 	});
 
-	client.Proxy("Cache.prototype.match", {
+	client.WebIDLProxy("Cache.prototype.match", {
 		apply(ctx) {
 			const url = String(ctx.args[0]);
 			ctx.args[0] = client.rewriteUrl(url);
 		},
 	});
 
-	client.Proxy("Cache.prototype.matchAll", {
+	client.WebIDLProxy("Cache.prototype.matchAll", {
 		apply(ctx) {
 			const url = String(ctx.args[0]);
 			ctx.args[0] = client.rewriteUrl(url);
 		},
 	});
 
-	client.Proxy("Cache.prototype.keys", {
+	client.WebIDLProxy("Cache.prototype.keys", {
 		apply(ctx) {
 			const url = String(ctx.args[0]);
 			ctx.args[0] = client.rewriteUrl(url);
 		},
 	});
 
-	client.Proxy("Cache.prototype.delete", {
+	client.WebIDLProxy("Cache.prototype.delete", {
 		apply(ctx) {
 			const url = String(ctx.args[0]);
 			ctx.args[0] = client.rewriteUrl(url);

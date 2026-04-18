@@ -2,7 +2,7 @@ import { ScramjetClient } from "@client/index";
 import { String } from "@/shared/snapshot";
 
 export default function (client: ScramjetClient, _self: Self) {
-	client.Trap("PerformanceEntry.prototype.name", {
+	client.WebIDLTrap("PerformanceEntry.prototype.name", {
 		get(ctx) {
 			// name is going to be a url typically
 			const name = String(ctx.get());
@@ -27,7 +27,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		});
 	};
 
-	client.Proxy(
+	client.WebIDLProxy(
 		[
 			"Performance.prototype.getEntries",
 			"Performance.prototype.getEntriesByType",
