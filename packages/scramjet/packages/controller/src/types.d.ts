@@ -44,6 +44,7 @@ export type SWbound = {
 		{
 			url: string;
 			cookie: string;
+			destination?: RequestDestination;
 		},
 	];
 };

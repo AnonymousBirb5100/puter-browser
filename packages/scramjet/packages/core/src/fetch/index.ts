@@ -54,7 +54,11 @@ export type FetchHandlerInit = {
 	context: ScramjetContext;
 	crossOriginIsolated?: boolean;
 
-	sendSetCookie: (url: URL, cookie: string) => Promise<void>;
+	sendSetCookie: (
+		url: URL,
+		cookie: string,
+		destination?: RequestDestination
+	) => Promise<void>;
 	fetchDataUrl(dataUrl: string): Promise<BareResponse>;
 	fetchBlobUrl(blobUrl: string): Promise<BareResponse>;
 };
@@ -88,7 +92,11 @@ export class ScramjetFetchHandler extends EventTarget {
 
 	public fetchDataUrl: (dataUrl: string) => Promise<Response>;
 	public fetchBlobUrl: (blobUrl: string) => Promise<Response>;
-	public sendSetCookie: (url: URL, cookie: string) => Promise<void>;
+	public sendSetCookie: (
+		url: URL,
+		cookie: string,
+		destination?: RequestDestination
+	) => Promise<void>;
 
 	constructor(init: FetchHandlerInit) {
 		super();

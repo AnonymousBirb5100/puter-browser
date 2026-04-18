@@ -393,7 +393,11 @@ async function handleCookies(
 		if (key.toLowerCase() !== "set-cookie") continue;
 
 		handler.context.cookieJar.setCookies(value, parsed.url);
-		const promise = handler.sendSetCookie(parsed.url, value);
+		const promise = handler.sendSetCookie(
+			parsed.url,
+			value,
+			request.destination
+		);
 		// TODO: batch this
 		await promise;
 	}

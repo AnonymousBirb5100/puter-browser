@@ -534,10 +534,11 @@ export class Frame {
 			crossOriginIsolated: self.crossOriginIsolated,
 			context: this.context,
 			transport: controller.transport,
-			async sendSetCookie(url, cookie) {
+			async sendSetCookie(url, cookie, destination) {
 				await controller.rpc.call("sendSetCookie", {
 					url: url.href,
 					cookie,
+					destination,
 				});
 			},
 			async fetchBlobUrl(url) {
