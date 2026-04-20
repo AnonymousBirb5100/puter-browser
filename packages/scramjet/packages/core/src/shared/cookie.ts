@@ -129,8 +129,11 @@ export class CookieJar {
 			.join("; ");
 	}
 
-	load(cookies: string) {
-		if (typeof cookies === "object") return cookies;
+	load(cookies: string | Record<string, Cookie>) {
+		if (typeof cookies === "object") {
+			console.error("??");
+			return;
+		}
 		this.cookies = JSON_parse(cookies);
 	}
 

@@ -131,12 +131,16 @@ export function rewriteRequestHeaders(
 			? parsed.referrerSourceUrl
 			: request.rawClientUrl ||
 				(request.rawReferrer ? new _URL(request.rawReferrer) : undefined);
+	const originUrl =
+		rawOriginUrl &&
+		rawOriginUrl.pathname.startsWith(handler.context.prefix.pathname)
+			? new _URL(unrewriteUrl(rawOriginUrl, handler.context))
+			: rawOriginUrl;
 
 	if (
 		rawOriginUrl &&
 		rawOriginUrl.pathname.startsWith(handler.context.prefix.pathname)
 	) {
-		const originUrl = new _URL(unrewriteUrl(rawOriginUrl, handler.context));
 		headers.set("Origin", originUrl.origin);
 
 		const referer = createReferrerString(
@@ -147,7 +151,7 @@ export function rewriteRequestHeaders(
 		if (referer) headers.set("Referer", referer);
 	}
 
-	const sameSiteContext = computeSameSiteContext(request, parsed, rawOriginUrl);
+	const sameSiteContext = computeSameSiteContext(request, parsed, originUrl);
 	const cookies = handler.context.cookieJar.getCookies(
 		parsed.url,
 		false,
