@@ -1,0 +1,39 @@
+{
+	"name": "scramdiff",
+	"version": "0.0.1",
+	"description": "Differential oracle for scramjet: compares site behavior inside scramjet vs direct, isolates nondeterminism, attributes divergences to specific interceptors.",
+	"type": "module",
+	"private": true,
+	"main": "src/index.ts",
+	"bin": {
+		"scramdiff": "./src/cli.ts"
+	},
+	"scripts": {
+		"diff": "node --experimental-strip-types --no-warnings src/cli.ts",
+		"diff:headed": "HEADED=1 node --experimental-strip-types --no-warnings src/cli.ts",
+		"serve": "node --experimental-strip-types --no-warnings src/cli.ts serve",
+		"build:probe": "node --experimental-strip-types --no-warnings src/probe/build.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@mercuryworkshop/scramjet": "workspace:*",
+		"@mercuryworkshop/scramjet-controller": "workspace:*",
+		"@mercuryworkshop/libcurl-transport": "catalog:",
+		"@mercuryworkshop/wisp-js": "catalog:",
+		"express": "^4.18.2",
+		"playwright": "^1.40.0"
+	},
+	"devDependencies": {
+		"@types/express": "^4.17.21",
+		"@types/node": "^22.0.0"
+	},
+	"keywords": [
+		"scramjet",
+		"proxy",
+		"record-replay",
+		"differential-testing"
+	],
+	"author": "Mercury Workshop",
+	"license": "AGPL-3.0-only",
+	"packageManager": "pnpm@10.12.1"
+}

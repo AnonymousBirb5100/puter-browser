@@ -1,0 +1,154 @@
+<!doctype html>
+<html>
+	<head>
+		<title>scramdiff harness</title>
+		<meta charset="utf-8" />
+		<style>
+			html,
+			body {
+				margin: 0;
+				padding: 0;
+				width: 100%;
+				height: 100%;
+				background: #111;
+				color: #eee;
+				font-family: system-ui, sans-serif;
+			}
+			#status {
+				padding: 4px 8px;
+				font-size: 12px;
+				background: #000;
+				color: #8f8;
+				white-space: pre;
+			}
+			#sf {
+				display: block;
+				width: 100vw;
+				height: calc(100vh - 22px);
+				border: 0;
+				background: #fff;
+			}
+		</style>
+		<script src="/_scramdiff_config.js"></script>
+		<script src="/scramjet/scramjet.js"></script>
+		<script src="/controller/controller.api.js"></script>
+		<script src="/libcurl/index.js"></script>
+	</head>
+	<body>
+		<p id="status">booting…</p>
+		<!--
+			The target page loads INSIDE this iframe — that's the shape scramjet
+			(and its reference Runway harness) requires. The controller needs a
+			specific frame element registered via createFrame(iframe); the
+			service worker uses the frame's prefix to disambiguate requests.
+			Attempting a top-level navigation to a proxy URL hangs because the
+			SW has no frame context to bind the request to.
+		-->
+		<iframe
+			id="sf"
+			sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+		></iframe>
+		<script>
+			(async () => {
+				const status = document.getElementById("status");
+				const say = (t) => {
+					status.textContent = t;
+					console.log("[scramdiff-harness]", t);
+				};
+
+				try {
+					say(
+						"diagnostic: $scramjet=" +
+							typeof window.$scramjet +
+							" $scramjetController=" +
+							typeof window.$scramjetController +
+							" LibcurlTransport=" +
+							typeof window.LibcurlTransport
+					);
+					say("registering service worker");
+					const reg = await navigator.serviceWorker.register("/sw.js");
+					if (!navigator.serviceWorker.controller) {
+						await new Promise((resolve) => {
+							if (reg.active) return resolve();
+							const sw = reg.installing || reg.waiting;
+							sw?.addEventListener("statechange", () => {
+								if (sw.state === "activated") resolve();
+							});
+						});
+						if (!navigator.serviceWorker.controller) {
+							await new Promise((resolve) => {
+								navigator.serviceWorker.addEventListener(
+									"controllerchange",
+									resolve,
+									{ once: true }
+								);
+							});
+						}
+					}
+
+					say("initializing controller");
+					const { Controller } = window.$scramjetController;
+					const LibcurlClient = window.LibcurlTransport.LibcurlClient;
+
+					const transport = new LibcurlClient({
+						wisp: window.__SCRAMDIFF_WISP_URL__,
+					});
+
+					const sw = navigator.serviceWorker.controller ?? reg.active;
+					if (!sw) throw new Error("no service worker available");
+
+					const controller = new Controller({
+						serviceworker: sw,
+						transport,
+					});
+					await controller.ready;
+
+					const iframe = document.getElementById("sf");
+					const frame = controller.createFrame(iframe);
+					window.__scramdiffFrame = frame;
+					window.__scramdiffIframe = iframe;
+
+					// Navigate the registered iframe through scramjet. Resolves
+					// when the iframe fires 'load' (or after a grace period even
+					// if load never fires, which happens with long-poll pages).
+					// Returns the iframe's final URL so the driver can report it.
+					window.__scramdiffNavigate = (url) =>
+						new Promise((resolve) => {
+							let resolved = false;
+							const done = () => {
+								if (resolved) return;
+								resolved = true;
+								let finalHref = "";
+								try {
+									finalHref =
+										iframe.contentWindow?.location?.href || iframe.src;
+								} catch {
+									finalHref = iframe.src;
+								}
+								resolve(finalHref);
+							};
+							iframe.addEventListener("load", done, { once: true });
+							// 45s grace — we don't block forever on SW stalls.
+							setTimeout(done, 45000);
+							frame.go(url);
+						});
+
+					// Kept for backwards compat / direct debugging. Encodes a URL
+					// using the frame's context without navigating.
+					window.__scramdiffEncode = (url) =>
+						window.$scramjet.rewriteUrl(url, frame.context, {
+							origin: new URL(location.href),
+							base: new URL(location.href),
+						});
+
+					say("ready");
+					window.__scramdiffHarnessReady = true;
+				} catch (err) {
+					say("error: " + (err && err.message) + "\n" + (err && err.stack));
+					console.error(err);
+					window.__scramdiffHarnessError = String((err && err.stack) || err);
+				}
+			})();
+		</script>
+	</body>
+</html>

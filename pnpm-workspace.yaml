@@ -19,6 +19,7 @@ packages:
   - "packages/scramjet/packages/typedoc"
   - "packages/scramjet/packages/create-proxy-app"
   - "packages/scramjet/packages/runway"
+  - "packages/scramjet/packages/scramdiff"
 
 catalog:
   "@mercuryworkshop/proxy-transports": 1.0.2
