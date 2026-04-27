@@ -84,11 +84,11 @@ importers:
   external/dreamlandjs:
     dependencies:
       dom-serializer:
-        specifier: ^3.0.0
-        version: 3.0.0
+        specifier: ^2.0.0
+        version: 2.0.0
       domhandler:
-        specifier: ^6.0.1
-        version: 6.0.1
+        specifier: ^5.0.3
+        version: 5.0.3
       htm:
         specifier: ^3.1.1
         version: 3.1.1
