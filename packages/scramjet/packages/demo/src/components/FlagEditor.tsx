@@ -36,6 +36,7 @@ const flagDescriptions: Record<keyof ScramjetFlags, string> = {
 	debugTrampolines: "Show proxied api in stack traces (debug feature)",
 	debugSourceURL:
 		"Make debugger recognize javascript source urls consistently (debug feature)",
+	visitor: "Which javascript rewriting method to use",
 };
 
 const FlagEditor: Component<
