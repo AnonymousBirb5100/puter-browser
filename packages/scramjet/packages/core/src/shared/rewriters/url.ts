@@ -105,6 +105,22 @@ export type RewriteUrlOptions = {
 	navigateType?: NavigationType;
 	topFrame?: string;
 	parentFrame?: string;
+	isIframe?: boolean;
+	/**
+	 * The page's intended `RequestInit.mode`. Captured from `fetch()` /
+	 * `new Request()` callsites because `event.request.mode` inside the
+	 * service worker is computed against the (rewritten, same-origin) URL
+	 * and so is meaningless to the destination. Stamped onto the proxy URL
+	 * as `sj$mode=…`.
+	 */
+	mode?: string;
+	/**
+	 * The page's intended `RequestInit.credentials`. Same reasoning as
+	 * `mode` — `event.request.credentials` is unreliable inside the SW.
+	 * Only forwarded when explicit; gates Sec-Fetch-Storage-Access on
+	 * cross-site requests. Stamped onto the proxy URL as `sj$cred=…`.
+	 */
+	credentials?: string;
 };
 
 export function rewriteUrl(
@@ -176,6 +192,36 @@ export function rewriteUrl(
 		}
 		if (options?.parentFrame) {
 			paramsInit.append("parentFrame", options.parentFrame);
+		}
+
+		if (options?.isIframe) {
+			paramsInit.append("isIframe", "1");
+		}
+
+		if (options?.mode) {
+			paramsInit.append("sj$mode", options.mode);
+		}
+
+		if (options?.credentials) {
+			paramsInit.append("sj$cred", options.credentials);
+		}
+
+		// Encode the initiator origin so that requests where the service worker
+		// can't recover the originating page (top-level navigations triggered
+		// from a click, form submit, or location set — event.clientId is empty
+		// and event.request.referrer / Referer aren't surfaced for those) can
+		// still compute Sec-Fetch-Site correctly. Skip the annotation when
+		// `meta.origin` refers to scramjet's own physical host (e.g. the
+		// runway harness shell or a Frame.go() call from the controller),
+		// because that's not a logical scramjet page — Sec-Fetch-Site for
+		// such navigations should resolve to "none".
+		if (
+			meta.origin &&
+			meta.origin.origin &&
+			meta.origin.origin !== "null" &&
+			meta.origin.origin !== context.prefix.origin
+		) {
+			paramsInit.append("sj$io", meta.origin.origin);
 		}
 
 		let paramstring = "";

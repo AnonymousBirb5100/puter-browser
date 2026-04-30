@@ -21,7 +21,12 @@ import { ScramjetHeaders } from "@/shared";
 import { isDocument, isRedirect, normalizeContentType } from "./util";
 import { rewriteBody } from "./body";
 import { Tap } from "@/Tap";
-import { rewriteRequestHeaders, rewriteResponseHeaders } from "./headers";
+import {
+	computeFetchSite,
+	rewriteRequestHeaders,
+	rewriteResponseHeaders,
+	worstFetchSite,
+} from "./headers";
 import { Object_entries, Object_keys, _URL, Error } from "@/shared/snapshot";
 
 export async function doHandleFetch(
@@ -80,23 +85,36 @@ export async function doHandleFetch(
 		// easiest way of accomplishing this is just tacking on an extra query parameter that's read below
 		location.searchParams.set("rfs", referer ?? "");
 
+		// Compute the page (initiator) URL once. The initiator never changes
+		// through a redirect chain, so prefer the propagated `sj$io` value if
+		// the chain has already started; otherwise fall back to rawClientUrl
+		// or rawReferrer (which point at the page for the *first* hop).
+		let initiatorOriginUrl: URL | undefined;
+		if (parsed.fetchInitiatorOrigin) {
+			try {
+				initiatorOriginUrl = new URL(parsed.fetchInitiatorOrigin);
+			} catch {
+				initiatorOriginUrl = undefined;
+			}
+		}
+		if (!initiatorOriginUrl) {
+			const rawClient =
+				request.rawClientUrl ||
+				(request.rawReferrer ? new URL(request.rawReferrer) : undefined);
+			initiatorOriginUrl =
+				rawClient &&
+				rawClient.pathname.startsWith(handler.context.prefix.pathname)
+					? new URL(unrewriteUrl(rawClient, handler.context))
+					: undefined;
+		}
+
 		// Cross-site redirect poisoning (SameSite): if this hop was cross-site, or a
 		// previous hop already was, propagate the flag so the final destination enforces
 		// cross-site SameSite restrictions.
 		if (!parsed.crossSiteRedirect) {
-			// Compute originUrl the same way rewriteRequestHeaders does
-			const rawOUrl =
-				parsed.referrerSourceUrl !== undefined
-					? parsed.referrerSourceUrl
-					: request.rawClientUrl ||
-						(request.rawReferrer ? new URL(request.rawReferrer) : undefined);
-			if (
-				rawOUrl &&
-				rawOUrl.pathname.startsWith(handler.context.prefix.pathname)
-			) {
-				const originUrl = new URL(unrewriteUrl(rawOUrl, handler.context));
+			if (initiatorOriginUrl) {
 				if (
-					registrableDomainForRedirect(originUrl.hostname) !==
+					registrableDomainForRedirect(initiatorOriginUrl.hostname) !==
 					registrableDomainForRedirect(parsed.url.hostname)
 				) {
 					location.searchParams.set("sj$csr", "1");
@@ -104,6 +122,24 @@ export async function doHandleFetch(
 			}
 		} else {
 			location.searchParams.set("sj$csr", "1");
+		}
+
+		// Sec-Fetch-Site chain state: combine the worst classification seen so
+		// far with the relation between the initiator and *this* hop's URL.
+		// Once "cross-site" appears, it sticks for the rest of the chain.
+		if (initiatorOriginUrl) {
+			const hopSite = computeFetchSite(initiatorOriginUrl, parsed.url);
+			const propagated = parsed.fetchSiteState
+				? worstFetchSite(parsed.fetchSiteState, hopSite)
+				: hopSite;
+			if (propagated !== "same-origin" && propagated !== "none") {
+				location.searchParams.set("sj$fs", propagated);
+			}
+			// Preserve the original initiator origin across the rest of the
+			// redirect chain so Sec-Fetch-Site can compare against it on every
+			// hop (Referer may be stripped or replaced with the previous hop's
+			// URL by browsers).
+			location.searchParams.set("sj$io", initiatorOriginUrl.origin);
 		}
 
 		responseHeaders.set("location", location.href);
@@ -212,6 +248,11 @@ export function parseRequest(
 	let referrerPolicy: string | undefined;
 	let referrerSourceUrl: _URL | null | undefined;
 	let crossSiteRedirect = false;
+	let fetchSiteState: "same-origin" | "same-site" | "cross-site" | undefined;
+	let fetchInitiatorOrigin: string | undefined;
+	let fetchCredentialsInclude = false;
+	let fetchMode: RequestMode | undefined;
+	let isIframe = false;
 	for (const [param, value] of [...request.rawUrl.searchParams.entries()]) {
 		switch (param) {
 			case "type":
@@ -231,9 +272,41 @@ export function parseRequest(
 			case "rfs":
 				referrerSourceUrl = value ? new _URL(value) : null;
 				break;
+			case "isIframe":
+				isIframe = value === "1";
+				break;
 			case "sj$csr":
 				// Cross-site redirect flag: set when any hop in the redirect chain was cross-site
 				crossSiteRedirect = value === "1";
+				break;
+			case "sj$fs":
+				// Sec-Fetch-Site chain state propagated across redirects.
+				fetchSiteState = value as "same-origin" | "same-site" | "cross-site";
+				break;
+			case "sj$io":
+				// Initiator origin propagated across redirects (used by Sec-Fetch-Site).
+				if (value) fetchInitiatorOrigin = value;
+				break;
+			case "sj$cred":
+				// Set by the client-side fetch proxy when init.credentials ===
+				// "include"; the SW's `event.request.credentials` value isn't
+				// reliable enough to use directly here.
+				if (value === "include") fetchCredentialsInclude = true;
+				break;
+			case "sj$mode":
+				// Set by the client-side fetch / Request proxy with the page's
+				// intended `init.mode` (default "cors" for fetch). The SW's
+				// `event.request.mode` reflects the proxy URL relationship
+				// (always same-origin to the page) so it's not safe to trust.
+				if (
+					value === "cors" ||
+					value === "no-cors" ||
+					value === "same-origin" ||
+					value === "navigate" ||
+					value === "websocket"
+				) {
+					fetchMode = value;
+				}
 				break;
 			default:
 				dbg.warn(
@@ -295,6 +368,11 @@ export function parseRequest(
 		trackedClient,
 		hadExtraParams,
 		crossSiteRedirect,
+		fetchSiteState,
+		fetchInitiatorOrigin,
+		fetchCredentialsInclude,
+		fetchMode,
+		isIframe,
 	};
 
 	if (request.rawClientUrl) {

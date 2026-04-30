@@ -29,6 +29,7 @@ export const htmlRules: {
 			const url = rewriteUrl(value, context, meta, {
 				topFrame: meta.topFrameName,
 				parentFrame: meta.parentFrameName,
+				isIframe: true,
 			});
 
 			return url;
