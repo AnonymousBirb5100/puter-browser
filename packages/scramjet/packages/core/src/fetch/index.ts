@@ -84,6 +84,15 @@ export interface ScramjetFetchParsed {
 	 */
 	isIframe?: boolean;
 
+	/**
+	 * Page-side override for `request.destination`. Currently set by the HTML
+	 * rule for `<link rel="prefetch|preload|modulepreload" as="X">` because
+	 * `event.request.destination` arrives at the SW as `""` for those even
+	 * though the network request uses `X`. Read from the `sj$dest` URL
+	 * parameter. Used directly as Sec-Fetch-Dest when present.
+	 */
+	fetchDest?: string;
+
 	meta: URLMeta;
 	scriptType: "module" | "regular";
 	referrerPolicy?: string;

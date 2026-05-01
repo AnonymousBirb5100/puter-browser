@@ -25,6 +25,36 @@ function bytesToBase64(bytes: Uint8Array) {
 	return btoa(binString);
 }
 
+/**
+ * Sibling attributes whose value changes alter the rewrite of `<link href>`
+ * (because the link's destination / credentials mode is derived from them).
+ */
+const LINK_DEST_INPUT_ATTRS = new Set(["as", "rel", "crossorigin"]);
+
+/**
+ * Snapshot the current attributes of an element as a plain object so HTML
+ * rules can inspect siblings (e.g. read `as` / `rel` while rewriting
+ * `<link href>`). Reads through scramjet-stored originals where present so
+ * rules see un-rewritten values.
+ */
+function collectElementAttribs(element: Element): Record<string, string> {
+	const out: Record<string, string> = {};
+	const attrs = element.attributes;
+	for (let i = 0; i < attrs.length; i++) {
+		const a = attrs.item(i);
+		if (!a) continue;
+		if (a.name.startsWith("scramjet-attr-")) continue;
+		out[a.name] = a.value;
+	}
+	for (let i = 0; i < attrs.length; i++) {
+		const a = attrs.item(i);
+		if (!a) continue;
+		if (!a.name.startsWith("scramjet-attr-")) continue;
+		out[a.name.slice("scramjet-attr-".length)] = a.value;
+	}
+	return out;
+}
+
 export function foreignContextForElement(
 	client: ScramjetClient,
 	element: Element
@@ -229,6 +259,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 	client.Proxy("Element.prototype.setAttribute", {
 		apply(ctx) {
 			const [name, value] = ctx.args;
+			const tagName = ctx.this.tagName.toLowerCase();
 
 			const ruleList = htmlRules.find((rule) => {
 				const r = rule[name.toLowerCase()];
@@ -236,11 +267,17 @@ export default function (client: ScramjetClient, self: typeof window) {
 				if (r === "*") return true;
 				if (typeof r === "function") return false; // this can't happen but ts
 
-				return r.includes(ctx.this.tagName.toLowerCase());
+				return r.includes(tagName);
 			});
 
 			if (ruleList) {
-				const ret = ruleList.fn(value, client.context, client.meta);
+				// Pass element info to the rule so rewriters that depend on
+				// sibling attributes (e.g. `<link rel=prefetch as=X>` →
+				// Sec-Fetch-Dest=X) can read the current element state.
+				const ret = ruleList.fn(value, client.context, client.meta, {
+					name: tagName,
+					attribs: collectElementAttribs(ctx.this as Element),
+				});
 				if (ret == null) {
 					client.natives.call(
 						"Element.prototype.removeAttribute",
@@ -253,6 +290,52 @@ export default function (client: ScramjetClient, self: typeof window) {
 				}
 				ctx.args[1] = ret;
 				ctx.fn.call(ctx.this, `scramjet-attr-${ctx.args[0]}`, value);
+			}
+
+			// `<link rel=prefetch|preload|modulepreload>` only knows what
+			// destination its request should have once `as` (or `rel` /
+			// `crossorigin`) is set. Pages routinely set `href` first and the
+			// other attributes afterwards, so the initial rewrite at
+			// `setAttribute('href', …)` time can't see `as` yet. Re-run the
+			// href rewrite synchronously here, projecting the about-to-be-set
+			// attribute on top of the live attribs snapshot so the rewrite
+			// reflects the final element state.
+			if (tagName === "link" && LINK_DEST_INPUT_ATTRS.has(name.toLowerCase())) {
+				const originalHref = client.natives.call(
+					"Element.prototype.getAttribute",
+					ctx.this,
+					"scramjet-attr-href"
+				) as string | null;
+				if (originalHref !== null) {
+					try {
+						const projected = collectElementAttribs(ctx.this as Element);
+						projected[name.toLowerCase()] = String(value);
+						const linkRule = htmlRules.find((rule) => {
+							const r = rule["href"];
+							if (typeof r === "function" || !r) return false;
+							if (r === "*") return true;
+							return r.includes(tagName);
+						});
+						if (linkRule) {
+							const newHref = linkRule.fn(
+								originalHref,
+								client.context,
+								client.meta,
+								{ name: tagName, attribs: projected }
+							);
+							if (newHref != null) {
+								client.natives.call(
+									"Element.prototype.setAttribute",
+									ctx.this,
+									"href",
+									newHref
+								);
+							}
+						}
+					} catch {
+						/* ignore */
+					}
+				}
 			}
 		},
 	});

@@ -252,6 +252,7 @@ export function parseRequest(
 	let fetchInitiatorOrigin: string | undefined;
 	let fetchCredentialsInclude = false;
 	let fetchMode: RequestMode | undefined;
+	let fetchDest: string | undefined;
 	let isIframe = false;
 	for (const [param, value] of [...request.rawUrl.searchParams.entries()]) {
 		switch (param) {
@@ -307,6 +308,12 @@ export function parseRequest(
 				) {
 					fetchMode = value;
 				}
+				break;
+			case "sj$dest":
+				// Set by the HTML rewriter for `<link rel="prefetch|preload|
+				// modulepreload" as="X">`; `event.request.destination` for
+				// those is `""` even though the network request uses `X`.
+				if (value) fetchDest = value;
 				break;
 			default:
 				dbg.warn(
@@ -372,6 +379,7 @@ export function parseRequest(
 		fetchInitiatorOrigin,
 		fetchCredentialsInclude,
 		fetchMode,
+		fetchDest,
 		isIframe,
 	};
 

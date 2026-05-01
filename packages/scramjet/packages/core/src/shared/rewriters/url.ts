@@ -121,6 +121,16 @@ export type RewriteUrlOptions = {
 	 * cross-site requests. Stamped onto the proxy URL as `sj$cred=…`.
 	 */
 	credentials?: string;
+	/**
+	 * Override for the request's destination, used by callers that know
+	 * what the destination *will be* at network time even though the SW's
+	 * `event.request.destination` won't reflect it. Notably
+	 * `<link rel="prefetch" as="X">` and `<link rel="preload" as="X">` —
+	 * the browser reports `destination: ""` to the SW for those, but the
+	 * actual network request uses `X`. Stamped onto the proxy URL as
+	 * `sj$dest=…`.
+	 */
+	dest?: string;
 };
 
 export function rewriteUrl(
@@ -204,6 +214,10 @@ export function rewriteUrl(
 
 		if (options?.credentials) {
 			paramsInit.append("sj$cred", options.credentials);
+		}
+
+		if (options?.dest) {
+			paramsInit.append("sj$dest", options.dest);
 		}
 
 		// Encode the initiator origin so that requests where the service worker

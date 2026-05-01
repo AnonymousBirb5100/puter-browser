@@ -223,7 +223,12 @@ function applyFetchMetadataHeaders(
 	// and fall back to a destination-based default for everything else.
 	headers.set("Sec-Fetch-Mode", computeFetchMode(request, parsed));
 
-	if (request.destination === "iframe") {
+	// Sec-Fetch-Dest: prefer page-side overrides (e.g. `<link rel=prefetch
+	// as=X>` stamps `sj$dest=X` since the SW's `request.destination` for
+	// prefetch is "" even though the network request uses X).
+	if (parsed.fetchDest) {
+		headers.set("Sec-Fetch-Dest", parsed.fetchDest);
+	} else if (request.destination === "iframe") {
 		if (!parsed.isIframe) {
 			// emulate a top-level navigation
 			headers.set("Sec-Fetch-Dest", "document");
