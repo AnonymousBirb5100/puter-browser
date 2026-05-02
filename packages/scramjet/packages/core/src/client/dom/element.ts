@@ -1,13 +1,12 @@
 import { htmlRules } from "@/shared/htmlRules";
 import {
 	String,
-	Array_from,
 	TextEncoder_encode,
-	btoa,
 	Object_keys,
 	Object_defineProperty,
 	atob,
 } from "@/shared/snapshot";
+import { bytesToBase64 } from "@/shared/util";
 import { rewriteCss, unrewriteCss } from "@rewriters/css";
 import { rewriteHtml, unrewriteHtml } from "@rewriters/html";
 import { rewriteJs } from "@rewriters/js";
@@ -83,7 +82,7 @@ export function insideForeignContext(
 	return "html";
 }
 
-export default function (client: ScramjetClient, self: typeof window) {
+export default function(client: ScramjetClient, self: typeof window) {
 	const attrObject = {
 		nonce: [self.HTMLElement],
 		integrity: [self.HTMLScriptElement, self.HTMLLinkElement],
@@ -342,7 +341,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	// i actually need to do something with this
 	client.Proxy("Element.prototype.setAttributeNode", {
-		apply(_ctx) {},
+		apply(_ctx) { },
 	});
 
 	client.Proxy("Element.prototype.setAttributeNS", {
@@ -562,7 +561,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 					apisource: "set Element.prototype.setHTMLUnsafe",
 					foreignContext: foreignContextForElement(client, ctx.this),
 				});
-			} catch {}
+			} catch { }
 		},
 	});
 
