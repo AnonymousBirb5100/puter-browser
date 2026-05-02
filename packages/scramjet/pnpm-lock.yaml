@@ -47,6 +47,9 @@ importers:
       '@rspack/core':
         specifier: ^1.5.8
         version: 1.6.7(@swc/helpers@0.5.17)
+      '@webref/idl':
+        specifier: ^3.76.0
+        version: 3.76.0(webidl2@24.5.0)
       chafa-wasm:
         specifier: ^0.3.1
         version: 0.3.1
@@ -65,6 +68,9 @@ importers:
       vite:
         specifier: ^7.3.0
         version: 7.3.0(@types/node@25.0.3)(jiti@2.6.1)(terser@5.44.1)(yaml@2.8.1)
+      webidl2:
+        specifier: ^24.5.0
+        version: 24.5.0
 
   packages/bootstrap:
     dependencies:
@@ -1297,6 +1303,11 @@ packages:
 
   '@webassemblyjs/wast-printer@1.14.1':
     resolution: {integrity: sha512-kPSSXE6De1XOR820C90RIo2ogvZG+c3KiHzqUoO/F34Y2shGzesfqv7o57xrxovZJH/MetF5UjroJ/R/3isoiw==}
+
+  '@webref/idl@3.76.0':
+    resolution: {integrity: sha512-3HPoiu2bN9UmfdIUi5+qH9oBBQmhfccOmoUXSlwEmv7LvDu1ifmGSzkUCRrYYsVubMeZCMSLRMXnWDFn2K6qBw==}
+    peerDependencies:
+      webidl2: ^24.5.0
 
   '@xtuc/ieee754@1.2.0':
     resolution: {integrity: sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA==}
@@ -4012,6 +4023,10 @@ packages:
   webidl-conversions@3.0.1:
     resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
 
+  webidl2@24.5.0:
+    resolution: {integrity: sha512-fxOigKkIem1iAgQ9t4cFOP+kWEA8y6Be/uh50FpJh0FijoeeT/VMrOyJzNLUgjy0rGMEcHeReKDCqj0g9dIe9A==}
+    engines: {node: '>= 18'}
+
   webpack-bundle-analyzer@4.10.2:
     resolution: {integrity: sha512-vJptkMm9pk5si4Bv922ZbKLV8UTT4zib4FPgXMhgzUny0bfDDkLXAVQs3ly3fS4/TN9ROFtb0NFrm04UXFE/Vw==}
     engines: {node: '>= 10.13.0'}
@@ -5319,6 +5334,10 @@ snapshots:
       '@webassemblyjs/ast': 1.14.1
       '@xtuc/long': 4.2.2
     optional: true
+
+  '@webref/idl@3.76.0(webidl2@24.5.0)':
+    dependencies:
+      webidl2: 24.5.0
 
   '@xtuc/ieee754@1.2.0':
     optional: true
@@ -8267,6 +8286,8 @@ snapshots:
       minimalistic-assert: 1.0.1
 
   webidl-conversions@3.0.1: {}
+
+  webidl2@24.5.0: {}
 
   webpack-bundle-analyzer@4.10.2(bufferutil@4.0.9):
     dependencies:

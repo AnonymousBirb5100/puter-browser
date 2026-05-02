@@ -32,6 +32,20 @@ if (!process.env.CI) {
 	} catch {}
 }
 
+// Regenerate the IDL-driven Window/Document (un)proxy tables consumed by
+// src/client/shared/unproxy.ts. The generator is a self-contained Node
+// script so it doesn't pull webidl2 / @webref/idl into the bundle. We run it
+// synchronously here so that rspack always picks up a fresh table.
+try {
+	execSync(
+		`node ${JSON.stringify("./packages/core/tools/generate-unproxy-tables.mjs")}`,
+		{ stdio: "inherit" }
+	);
+} catch (err) {
+	console.error("[rspack.config] failed to generate unproxy tables:", err);
+	throw err;
+}
+
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 // Project directories
