@@ -47,6 +47,7 @@ export const defaultConfig: ScramjetConfig = {
 		encapsulateWorkers: true,
 		debugSourceURL: false,
 		visitor: "dpsc",
+		disableDocumentProxy: false,
 	},
 	siteFlags: {},
 	maskedfiles: [],

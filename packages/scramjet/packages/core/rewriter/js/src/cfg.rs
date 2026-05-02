@@ -82,6 +82,10 @@ pub struct Flags {
 	pub do_sourcemaps: bool,
 	pub strict_rewrites: bool,
 	pub destructure_rewrites: bool,
+	/// When true the PPSC visitor skips wrapping `document` so user code
+	/// sees the real Document object. Mirrors the JS-side
+	/// `ScramjetFlags.disableDocumentProxy` flag.
+	pub disable_document_proxy: bool,
 
 	pub visitor: VisitorKind,
 }

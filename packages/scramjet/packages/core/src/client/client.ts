@@ -249,7 +249,24 @@ export class ScramjetClient {
 		);
 		if (this.visitor == "ppsc") {
 			this.globalProxy = createGlobalProxy(this, global);
-			this.documentProxy = createDocumentProxy(this, global);
+			// `disableDocumentProxy` opts out of the document-side of PPSC: user
+			// code keeps seeing the real Document, no Document/Node hooks get
+			// installed, no documentProxy exists.
+			if (
+				!getFlag(
+					"disableDocumentProxy",
+					init.context,
+					new _URL(
+						unrewriteUrl(this.global.location.href, {
+							prefix: init.context.prefix,
+							config: init.context.config,
+							interface: init.context.interface,
+						})
+					)
+				)
+			) {
+				this.documentProxy = createDocumentProxy(this, global);
+			}
 		}
 
 		if (iswindow) {

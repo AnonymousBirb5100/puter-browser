@@ -72,7 +72,10 @@ export function createPpscWrapFn(
 					// ... then we should pretend we aren't nested and return the current window
 					return client.globalProxy;
 				}
-			} else if (identifier === self.document) {
+			} else if (identifier === self.document && client.documentProxy) {
+				// When ScramjetFlags.disableDocumentProxy is set we leave
+				// `documentProxy` null and fall through so user code receives
+				// the real Document object.
 				return client.documentProxy;
 			} else if (identifier === self.top) {
 				// instead of returning top, we need to return the uppermost parent that's inside a scramjet context

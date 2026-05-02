@@ -40,6 +40,20 @@ const UNSAFE_GLOBALS: &[&str] = &[
 	"frames",
 ];
 
+// Same list with `document` removed; used when ScramjetFlags.disableDocumentProxy
+// is set so user code sees the real Document directly.
+const UNSAFE_GLOBALS_NO_DOCUMENT: &[&str] = &[
+	"window",
+	"self",
+	"globalThis",
+	"this",
+	"parent",
+	"top",
+	"location",
+	"eval",
+	"frames",
+];
+
 pub struct Visitor<'alloc, 'data, E>
 where
 	E: UrlRewriter,
@@ -57,6 +71,15 @@ impl<'data, E> Visitor<'_, 'data, E>
 where
 	E: UrlRewriter,
 {
+	#[inline]
+	fn unsafe_globals(&self) -> &'static [&'static str] {
+		if self.flags.disable_document_proxy {
+			UNSAFE_GLOBALS_NO_DOCUMENT
+		} else {
+			UNSAFE_GLOBALS
+		}
+	}
+
 	fn rewrite_url(&mut self, url: &StringLiteral<'data>, module: bool) {
 		let mut builder = StringBuilder::from_str_in(&self.config.prefix, self.alloc);
 		if self.error.is_some() {
@@ -75,7 +98,7 @@ where
 	}
 
 	fn rewrite_ident(&mut self, name: &Atom, span: Span) {
-		if UNSAFE_GLOBALS.contains(&name.as_str()) {
+		if self.unsafe_globals().contains(&name.as_str()) {
 			self.jschanges.add(rewrite!(span, WrapFn { enclose: true }));
 		}
 	}
@@ -102,7 +125,7 @@ where
 	E: UrlRewriter,
 {
 	fn visit_identifier_reference(&mut self, it: &IdentifierReference) {
-		if UNSAFE_GLOBALS.contains(&it.name.as_str()) {
+		if self.unsafe_globals().contains(&it.name.as_str()) {
 			self.jschanges
 				.add(rewrite!(it.span, WrapFn { enclose: false }));
 		}
@@ -144,7 +167,7 @@ where
 			}
 
 			if !self.flags.strict_rewrites
-				&& !UNSAFE_GLOBALS.contains(&s.property.name.as_str())
+				&& !self.unsafe_globals().contains(&s.property.name.as_str())
 				&& let Expression::Identifier(_) | Expression::ThisExpression(_) = &s.object
 			{
 				// cull tree - this should be safe
@@ -245,7 +268,7 @@ where
 		for prop in &it.properties {
 			if let ObjectPropertyKind::ObjectProperty(p) = prop
 				&& let Expression::Identifier(s) = &p.value
-				&& UNSAFE_GLOBALS.contains(&s.name.to_string().as_str())
+				&& self.unsafe_globals().contains(&s.name.to_string().as_str())
 				&& p.shorthand
 			{
 				self.jschanges

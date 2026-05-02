@@ -88,6 +88,8 @@ pub struct RewriterOptions {
 	strict_rewrites: bool,
 	#[clap(long, default_value_t = false)]
 	destructure_rewrites: bool,
+	#[clap(long, default_value_t = false)]
+	disable_document_proxy: bool,
 
 	/// Which AST visitor to use for rewriting.
 	#[clap(long, value_enum, default_value_t = CliVisitorKind::Dpsc)]

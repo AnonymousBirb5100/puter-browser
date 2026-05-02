@@ -37,6 +37,8 @@ const flagDescriptions: Record<keyof ScramjetFlags, string> = {
 	debugSourceURL:
 		"Make debugger recognize javascript source urls consistently (debug feature)",
 	visitor: "Which javascript rewriting method to use",
+	disableDocumentProxy:
+		"Disable the document proxy entirely: don't rewrite document accesses, skip Document/Node unproxy hooks, and don't construct a documentProxy",
 };
 
 const FlagEditor: Component<

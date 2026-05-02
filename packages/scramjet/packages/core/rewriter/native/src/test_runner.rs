@@ -129,6 +129,7 @@ function check(val) {
 			scramitize: false,
 			strict_rewrites: true,
 			destructure_rewrites: true,
+			disable_document_proxy: false,
 
 			visitor: CliVisitorKind::Dpsc,
 		};

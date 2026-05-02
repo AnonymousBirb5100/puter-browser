@@ -32,6 +32,14 @@ export type ScramjetFlags = {
 	debugSourceURL: boolean;
 	encapsulateWorkers: boolean;
 	visitor: "dpsc" | "ppsc";
+	/**
+	 * When true, scramjet doesn't construct a documentProxy or rewrite
+	 * `document` accesses to go through `$wrap`. User code sees the real
+	 * Document object directly, and the IDL-driven Node/Document
+	 * (un)proxy hooks installed by client/shared/unproxy.ts are skipped.
+	 * Useful when a site is incompatible with the document-proxy view.
+	 */
+	disableDocumentProxy: boolean;
 };
 
 export interface ScramjetConfig {

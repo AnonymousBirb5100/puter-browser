@@ -33,9 +33,11 @@ function proxyValue(v: any, kind: ProxyKind, client: ScramjetClient): any {
 	// If we're not in PPSC mode, no proxies exist; pass values through.
 	if (!client.globalProxy) return v;
 
-	// Direct hit on this realm.
+	// Direct hit on this realm. Document branch is gated on documentProxy
+	// because ScramjetFlags.disableDocumentProxy leaves it null.
 	if (v === client.global) return client.globalProxy;
-	if (v === client.global.document) return client.documentProxy;
+	if (client.documentProxy && v === client.global.document)
+		return client.documentProxy;
 
 	// Cross-realm: probe the proxy stash on the value (or its window for
 	// documents). Wrap in try/catch because cross-origin access throws.
@@ -102,7 +104,27 @@ const GLOBAL_OWNERS = new Set<string>([
 	"ServiceWorkerGlobalScope",
 ]);
 
+// Owners whose runtime instances might be `this` for a method call -- i.e.
+// the apply hook on their prototype must always run to swap the proxy back
+// to the real platform object. Window IS-A EventTarget, so EventTarget is
+// always required (otherwise `globalProxy.addEventListener(...)` lands in
+// native code with `this === globalProxy` and trips Illegal invocation).
+// Document/Node are only required when the documentProxy actually exists.
+function ownerNeedsThisUnproxy(owner: string, haveDocProxy: boolean): boolean {
+	if (GLOBAL_OWNERS.has(owner)) return true;
+	if (owner === "EventTarget") return true;
+	if (haveDocProxy && (owner === "Document" || owner === "Node")) return true;
+	return false;
+}
+
+export const enabled = (c: ScramjetClient) => c.visitor === "ppsc";
 export default function (client: ScramjetClient, self: typeof window) {
+	// `disableDocumentProxy` leaves documentProxy null. In that mode we skip
+	// every entry that exists solely for the document-proxy half of PPSC --
+	// "d"-kind args, "d" return wrap, "d" attributes -- because user code
+	// never sees a documentProxy.
+	const haveDocProxy = !!client.documentProxy;
+
 	// --- IDL-driven operation/constructor patches ---------------------------
 	for (const [
 		owner,
@@ -115,13 +137,34 @@ export default function (client: ScramjetClient, self: typeof window) {
 		const ctor = (self as any)[owner];
 		if (!ctor) continue;
 
+		// When document proxy is disabled, narrow the work this entry
+		// describes. Drop "d"-kind selectors and any "d" return wrap. "*"
+		// returns stay (proxyValue is null-safe for the document branch).
+		const activeArgs = haveDocProxy
+			? argSelectors
+			: argSelectors.filter((s) => s[1] !== "d");
+		const activeReturnKind: ProxyKind | "" =
+			!haveDocProxy && returnKind === "d" ? "" : returnKind;
+
+		// Skip the install entirely if there's no concrete work AND no proxy
+		// could land here as `this`. Otherwise even a "no-op" hook is needed
+		// just so we can swap a proxy receiver back to the real object.
+		if (
+			activeArgs.length === 0 &&
+			!activeReturnKind &&
+			!ownerNeedsThisUnproxy(owner, haveDocProxy)
+		) {
+			continue;
+		}
+
 		if (isCtor) {
+			if (activeArgs.length === 0) continue;
 			client.RawProxy(
 				self,
 				owner,
 				{
 					construct(ctx) {
-						unproxyArgs(ctx.args as any[], argSelectors, client);
+						unproxyArgs(ctx.args as any[], activeArgs, client);
 					},
 				},
 				`${owner} constructor`
@@ -136,8 +179,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 				: ctor.prototype;
 		if (!target) continue;
 
-		const wrapsArgs = argSelectors.length > 0;
-		const wrapsReturn = !!returnKind;
+		const wrapsArgs = activeArgs.length > 0;
+		const wrapsReturn = !!activeReturnKind;
 
 		client.RawProxy(
 			target,
@@ -147,14 +190,16 @@ export default function (client: ScramjetClient, self: typeof window) {
 					// Always normalize `this` so passing the global/document proxy
 					// in as the receiver doesn't trip "Illegal invocation".
 					if (ctx.this === client.globalProxy) ctx.this = self as any;
-					else if (ctx.this === client.documentProxy)
+					else if (client.documentProxy && ctx.this === client.documentProxy)
 						ctx.this = self.document as any;
 
-					if (wrapsArgs) unproxyArgs(ctx.args as any[], argSelectors, client);
+					if (wrapsArgs) unproxyArgs(ctx.args as any[], activeArgs, client);
 
 					if (wrapsReturn) {
 						const result = ctx.call();
-						ctx.return(proxyValue(result, returnKind as ProxyKind, client));
+						ctx.return(
+							proxyValue(result, activeReturnKind as ProxyKind, client)
+						);
 					}
 				},
 			},
@@ -164,6 +209,8 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	// --- IDL-driven attribute traps -----------------------------------------
 	for (const [owner, member, isStatic, kind, readonly] of ATTRIBUTES) {
+		// "d" attrs only matter when there's a documentProxy to wrap into.
+		if (!haveDocProxy && kind === "d") continue;
 		const ctor = (self as any)[owner];
 		if (!ctor) continue;
 		const target = isStatic ? ctor : ctor.prototype;
@@ -191,19 +238,17 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	// You can't run defineProperty against the globalProxy without poisoning
 	// the proxy's invariants -- redirect to the underlying global instead.
+	// Use unproxyValue (null-safe) so we don't accidentally replace `null`
+	// when documentProxy is disabled.
 	client.Proxy("Object.defineProperty", {
 		apply(ctx) {
-			if (ctx.args[0] === client.globalProxy) ctx.args[0] = self;
-			else if (ctx.args[0] === client.documentProxy)
-				ctx.args[0] = self.document;
+			ctx.args[0] = unproxyValue(ctx.args[0], client);
 		},
 	});
 
 	client.Proxy("Object.getOwnPropertyDescriptor", {
 		apply(ctx) {
-			if (ctx.args[0] === client.globalProxy) ctx.args[0] = self;
-			else if (ctx.args[0] === client.documentProxy)
-				ctx.args[0] = self.document;
+			ctx.args[0] = unproxyValue(ctx.args[0], client);
 
 			const desc = ctx.call();
 			if (!desc) return;
@@ -214,20 +259,16 @@ export default function (client: ScramjetClient, self: typeof window) {
 			if (desc.get) {
 				client.RawProxy(desc, "get", {
 					apply(c) {
-						if (c.this === client.globalProxy) c.this = self;
-						else if (c.this === client.documentProxy) c.this = self.document;
+						c.this = unproxyValue(c.this, client);
 					},
 				});
 			}
 			if (desc.set) {
 				client.RawProxy(desc, "set", {
 					apply(c) {
-						if (c.this === client.globalProxy) c.this = self;
-						else if (c.this === client.documentProxy) c.this = self.document;
+						c.this = unproxyValue(c.this, client);
 						for (let i = 0; i < c.args.length; i++) {
-							if (c.args[i] === client.globalProxy) c.args[i] = self;
-							else if (c.args[i] === client.documentProxy)
-								c.args[i] = self.document;
+							c.args[i] = unproxyValue(c.args[i], client);
 						}
 					},
 				});

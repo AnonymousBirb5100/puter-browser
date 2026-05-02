@@ -96,6 +96,9 @@ fn get_js_flags(obj: &Object, base: String, is_module: bool) -> Result<Flags> {
 		scramitize: get_bool(obj, "scramitize")?,
 		strict_rewrites: get_bool(obj, "strictRewrites")?,
 		destructure_rewrites: get_bool(obj, "destructureRewrites")?,
+		// Optional for backwards compat: older configs that pre-date the flag
+		// will have it absent; treat that as "off".
+		disable_document_proxy: get_bool(obj, "disableDocumentProxy").unwrap_or(false),
 
 		visitor,
 	})

@@ -95,6 +95,7 @@ impl NativeRewriter {
 					scramitize: cfg.scramitize,
 					strict_rewrites: cfg.strict_rewrites,
 					destructure_rewrites: cfg.destructure_rewrites,
+					disable_document_proxy: cfg.disable_document_proxy,
 
 					visitor: cfg.visitor.into(),
 				},
