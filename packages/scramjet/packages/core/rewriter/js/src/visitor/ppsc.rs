@@ -162,7 +162,7 @@ where
 	}
 
 	fn visit_this_expression(&mut self, it: &ThisExpression) {
-		self.jschanges.add(rewrite!(it.span, WrapThisFn));
+		// self.jschanges.add(rewrite!(it.span, WrapThisFn));
 	}
 
 	fn visit_debugger_statement(&mut self, it: &DebuggerStatement) {
