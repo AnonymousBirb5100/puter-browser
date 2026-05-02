@@ -189,6 +189,15 @@ export class ScramjetFetchHandler extends EventTarget {
 	}
 }
 export type FetchHooks = {
+	intercept: {
+		context: {
+			request: ScramjetFetchRequest;
+			parsed: ScramjetFetchParsed;
+		};
+		props: {
+			response?: ScramjetFetchResponse;
+		};
+	};
 	request: {
 		context: {
 			request: ScramjetFetchRequest;
