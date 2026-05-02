@@ -1,5 +1,6 @@
 import { SCRAMJETCLIENT, SCRAMJETCLIENTNAME } from "@/symbols";
 import { ProxyCtx, ScramjetClient } from "@client/index";
+import { NATIVE_BACKING } from "@client/shared/unproxy";
 
 enum RewriteType {
 	Insert = 0,
@@ -181,6 +182,16 @@ export default function (client: ScramjetClient, self: Self) {
 	// this can lead to double rewrites which is bad
 	client.Proxy("Function.prototype.toString", {
 		apply(ctx) {
+			// If `this` is one of unproxy.ts's plain-function wrappers, swap
+			// it for the native it stands in for. That way
+			// `Function.prototype.toString.call(Element.prototype.appendChild)`
+			// still returns the "[native code]" string anti-tampering checks
+			// expect, even though the prototype slot is now an EcmaScript
+			// function (not a `new Proxy(native, ...)`).
+			const native = NATIVE_BACKING.get(ctx.this as any);
+			if (native) {
+				return ctx.return(ctx.fn.call(native));
+			}
 			const before = performance.now();
 			doUnrewrite(client, ctx);
 			// dbg.time(client.meta, before, `scramtag unrewrite for ${ctx.fn.name}`);

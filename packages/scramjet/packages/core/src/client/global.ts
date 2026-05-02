@@ -18,6 +18,12 @@ export const UNSAFE_GLOBALS = [
 	"frames",
 ];
 
+// Set form for hot-path membership checks. createGlobalProxy.get fires on
+// every property access through globalProxy, so a hash lookup beats a linear
+// `Array.includes` scan -- and crucially V8 can keep the Set's internal
+// hashtable hot, while `.includes` walks N strings every time.
+const UNSAFE_GLOBALS_SET = new Set(UNSAFE_GLOBALS);
+
 export function createGlobalProxy(
 	client: ScramjetClient,
 	self: typeof globalThis
@@ -52,7 +58,7 @@ export function createGlobalProxy(
 
 			if (prop === "$scramjet") return undefined;
 
-			if (typeof prop === "string" && UNSAFE_GLOBALS.includes(prop)) {
+			if (typeof prop === "string" && UNSAFE_GLOBALS_SET.has(prop)) {
 				// TODO strict mode detect
 				return client.wrapfn(value, true);
 			}

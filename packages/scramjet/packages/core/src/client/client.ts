@@ -748,6 +748,17 @@ return { apply, construct };
 		}
 
 		if (handler.apply) {
+			// The Error.prepareStackTrace swap-dance is only needed for the
+			// "ERROR FROM SCRAMJET INTERNALS" diagnostic in the catch arm
+			// below, which is itself a debug aid. Doing the per-call save +
+			// swap + restore on Error.prepareStackTrace fires on every
+			// intercepted call -- and there are many. Capture the flag once
+			// at install time so production builds skip the dance.
+			const wantStackTraceFiltering =
+				this.getFlag("debugTrampolines") ||
+				this.getFlag("captureErrors") ||
+				this.getFlag("allowFailedIntercepts");
+
 			h.apply = (fn: any, that: any, args: any[]) => {
 				let returnValue: any = undefined;
 				let earlyreturn = false;
@@ -768,6 +779,18 @@ return { apply, construct };
 						return returnValue;
 					},
 				};
+
+				if (!wantStackTraceFiltering) {
+					// Fast path: just run the handler. If it throws, the error
+					// propagates with its native stack -- which is what most
+					// production callers actually want.
+					handler.apply(ctx);
+
+					if (earlyreturn) {
+						return returnValue;
+					}
+					return applyFn(ctx.fn, ctx.this, ctx.args);
+				}
 
 				const pst = Error.prepareStackTrace;
 

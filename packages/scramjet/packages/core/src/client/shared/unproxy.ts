@@ -1,11 +1,30 @@
 import { ProxyCtx, ScramjetClient } from "@client/client";
 import { SCRAMJETCLIENT } from "@/symbols";
 import {
+	Object_defineProperty,
+	Object_getOwnPropertyDescriptor,
+	Reflect_apply,
+	Reflect_get,
+	Reflect_has,
+} from "@/shared/snapshot";
+import {
 	OPERATIONS,
 	ATTRIBUTES,
 	type ArgSelector,
 	type ProxyKind,
 } from "../unproxy.generated";
+
+/**
+ * Maps each fast-path wrapper function back to the native function it
+ * stands in for, so `Function.prototype.toString` interception
+ * (sourcemaps.ts) can return the original native source string and avoid
+ * leaking our wrapper's body to anti-tampering checks. Module-level so
+ * it survives across module loads and is shared with sourcemaps.ts.
+ */
+export const NATIVE_BACKING: WeakMap<AnyFunction, AnyFunction> = new WeakMap();
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyFunction = (...args: any[]) => any;
 
 // we don't want to end up overriding a property on window that's derived from a prototype until we've proxied the prototype
 export const order = 3;
@@ -117,6 +136,111 @@ function ownerNeedsThisUnproxy(owner: string, haveDocProxy: boolean): boolean {
 	return false;
 }
 
+/**
+ * Fast install for the common case: the only thing the apply hook would
+ * have done is swap `this` from the global/document proxy back to the real
+ * platform object. We replace the prototype property with a plain function
+ * instead of `new Proxy(value, h)`. That avoids:
+ *   - the `Proxy[[Apply]]` trap (V8 slow path; defeats inline-cache)
+ *   - the per-call `ctx` object allocation in `RawProxy`
+ *   - the per-call `Error.prepareStackTrace` save/swap/restore dance
+ *   - the `try { handler.apply(ctx) } catch (...)` overhead
+ *
+ * Returns true if the install succeeded; the caller falls back to RawProxy
+ * if not.
+ */
+function installThisSwap(
+	target: any,
+	prop: string,
+	client: ScramjetClient
+): boolean {
+	if (!target || !prop) return false;
+	if (!Reflect_has(target, prop)) return false;
+	const native = Reflect_get(target, prop) as AnyFunction;
+	if (typeof native !== "function") return false;
+
+	const desc = Object_getOwnPropertyDescriptor(target, prop);
+	const gProxy = client.globalProxy as any;
+	const dProxy = client.documentProxy as any;
+	const gReal = client.global as any;
+	const dReal = (client.global as any).document;
+
+	// Pick the smallest-arity wrapper based on which proxies actually exist
+	// at install time. The closure capture means the comparisons constant-fold
+	// for V8's inline cache: each wrapper has exactly the branches it needs.
+	let wrapper: AnyFunction;
+	if (gProxy && dProxy) {
+		wrapper = function (this: any) {
+			return Reflect_apply(
+				native,
+				this === gProxy ? gReal : this === dProxy ? dReal : this,
+				arguments as any
+			);
+		};
+	} else if (gProxy) {
+		wrapper = function (this: any) {
+			return Reflect_apply(
+				native,
+				this === gProxy ? gReal : this,
+				arguments as any
+			);
+		};
+	} else if (dProxy) {
+		wrapper = function (this: any) {
+			return Reflect_apply(
+				native,
+				this === dProxy ? dReal : this,
+				arguments as any
+			);
+		};
+	} else {
+		// Neither proxy exists -- there's literally nothing for this hook to
+		// do. Tell the caller to skip the install entirely.
+		return false;
+	}
+
+	// Match the native function's name (some libraries detect by `.name`).
+	try {
+		Object_defineProperty(wrapper, "name", {
+			value: (native as any).name ?? prop,
+			configurable: true,
+		});
+	} catch {}
+
+	// Anti-tampering checks read `func.toString()`. Cache the native's
+	// toString output once and shadow Function.prototype.toString on the
+	// wrapper itself. Function.prototype.toString.call(wrapper) will still
+	// see the wrapper source, but sourcemaps.ts's toString proxy consults
+	// NATIVE_BACKING below to recover the native string in that path too.
+	let nativeStr: string | null = null;
+	try {
+		nativeStr = (native as any).toString();
+	} catch {}
+	if (nativeStr !== null) {
+		try {
+			Object_defineProperty(wrapper, "toString", {
+				value: function () {
+					return nativeStr;
+				},
+				configurable: true,
+				writable: true,
+			});
+		} catch {}
+	}
+
+	NATIVE_BACKING.set(wrapper, native);
+
+	delete target[prop];
+	Object_defineProperty(target, prop, {
+		value: wrapper,
+		writable: desc?.writable ?? true,
+		enumerable: desc?.enumerable ?? false,
+		configurable: desc?.configurable ?? true,
+	});
+
+	return true;
+}
+
 export const enabled = (c: ScramjetClient) => c.visitor === "ppsc";
 export default function (client: ScramjetClient, self: typeof window) {
 	// `disableDocumentProxy` leaves documentProxy null. In that mode we skip
@@ -181,6 +305,15 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 		const wrapsArgs = activeArgs.length > 0;
 		const wrapsReturn = !!activeReturnKind;
+
+		// Fast path: the entry only exists to swap `this`. Skip the full
+		// RawProxy machinery -- install a plain function instead. Avoids
+		// Proxy[[Apply]], ctx allocation, and the prepareStackTrace dance
+		// per call. Roughly 80% of OPERATIONS land here in PPSC mode.
+		if (!wrapsArgs && !wrapsReturn) {
+			installThisSwap(target, member, client);
+			continue;
+		}
 
 		client.RawProxy(
 			target,
