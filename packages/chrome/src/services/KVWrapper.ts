@@ -137,7 +137,7 @@ export class KVWrapper {
 		if (this.type === "localstorage") {
 			localStorage.removeItem(this.prefix + key);
 		} else {
-			await puter.kv.remove(key);
+			await puter.kv.del(key);
 		}
 	}
 
@@ -145,7 +145,7 @@ export class KVWrapper {
 		if (this.type === "localstorage") {
 			return localStorage.getItem(this.prefix + key) !== null;
 		} else {
-			return await puter.kv.has(key);
+			return (await puter.kv.list(key)).length;
 		}
 	}
 

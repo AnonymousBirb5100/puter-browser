@@ -1,6 +1,7 @@
 import { iconAdd, iconNew } from "../../icons";
 import { css, type FC } from "dreamland/core";
 import { OmnibarButton } from "@components/Omnibar/OmnibarButton";
+import { TabHoverCard } from "@components/TabStrip/TabHoverCard";
 import type { Tab } from "../../Tab/Tab";
 // import html2canvas from "html2canvas";
 import { setContextMenu } from "@components/Menu";
@@ -34,10 +35,12 @@ export function TabStrip(
 			afterEl: HTMLElement;
 
 			currentlydragging: string | null;
+			currentlyHovered: Tab | null;
 		}
 	>
 ) {
 	this.currentlydragging = null;
+	this.currentlyHovered = this.tabs[0];
 	this.visualtabs = [];
 
 	const [lock, unlock] = requestUnfocusFrames();
@@ -244,6 +247,9 @@ export function TabStrip(
 						tab={tab}
 						active={use(this.activetab).map((x) => x === tab)}
 						mousedown={(e) => mouseDown(e, visualtab!)}
+						mouseover={() => {
+							this.currentlyHovered = tab;
+						}}
 						destroy={() => {
 							this.destroyTab(tab);
 						}}
@@ -317,7 +323,7 @@ export function TabStrip(
 	};
 
 	return (
-		<div this={use(this.container)}>
+		<div id="tabstrip" this={use(this.container)}>
 			<div class="extra left" this={use(this.leftEl)}></div>
 			{use(this.visualtabs).mapEach((tab) => tab.root)}
 			<div
@@ -331,6 +337,7 @@ export function TabStrip(
 				<OmnibarButton icon={iconAdd} click={this.addTab}></OmnibarButton>
 			</div>
 			<div class="extra right" this={use(this.rightEl)}></div>
+			<TabHoverCard hoveredTab={use(this.currentlyHovered)} />
 		</div>
 	);
 }
@@ -341,6 +348,25 @@ TabStrip.style = css`
 		height: calc(var(--tab-height) + calc(var(--tab-padding) * 2));
 		z-index: 2;
 		position: relative;
+	}
+
+	:global(#tabstrip #hovercard) {
+		transition:
+			opacity 0.2s ease 700ms,
+			scale 0.2s cubic-bezier(0.43, 0.91, 0.34, 1.3) 700ms,
+			visibility 0s,
+			left 0.2s cubic-bezier(0.33, 0.22, 0.18, 1.17);
+		scale: 1;
+	}
+
+	:global(
+		#tabstrip:is(:has(:active), :not(:has(:hover:not(.extra, .extra *))))
+			#hovercard
+	) {
+		visibility: hidden;
+		opacity: 0;
+		scale: 0.8;
+		transition: none;
 	}
 
 	.extra {

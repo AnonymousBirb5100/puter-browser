@@ -3,11 +3,6 @@ import type { Tab } from "../../Tab/Tab";
 import { setContextMenu } from "@components/Menu";
 import { iconClose, iconDuplicate, iconNew, iconRefresh } from "../../icons";
 import { Icon } from "@components/Icon";
-import {
-	activeTooltips,
-	fastClose,
-	TabTooltip,
-} from "@components/TabStrip/TabTooltip";
 import { tabsService } from "../..";
 
 export function DragTab(
@@ -17,12 +12,14 @@ export function DragTab(
 			id: string;
 			tab: Tab;
 			mousedown: (e: MouseEvent) => void;
+			mouseover: () => void;
 			destroy: () => void;
 			transitionend: () => void;
 		},
 		{
 			tooltipActive: boolean;
 			tooltipAnimate: boolean;
+			tooltipHovered: boolean;
 		}
 	>
 ) {
@@ -80,7 +77,9 @@ export function DragTab(
 	return (
 		<div
 			style="z-index: 0;"
-			class="tab"
+			class={use(this.tooltipHovered).map((hovered) =>
+				hovered ? "tab hovered" : "tab"
+			)}
 			data-id={this.id}
 			on:transitionend={() => {
 				// Clears programmatically assigned move transition/z-index after tab translate animation ends.
@@ -101,40 +100,16 @@ export function DragTab(
 						this.destroy();
 					}
 				}}
-				on:contextmenu={() => {
-					if (hoverTimeout) clearTimeout(hoverTimeout);
-					this.tooltipActive = false;
-				}}
 				on:mouseenter={() => {
-					if (hoverTimeout) clearTimeout(hoverTimeout);
-
-					if (activeTooltips > 0) {
-						// skip delay
-						fastClose();
-						this.tooltipAnimate = true;
-						this.tooltipActive = true;
-					} else {
-						hoverTimeout = window.setTimeout(() => {
-							this.tooltipActive = true;
-						}, 500);
-					}
+					this.tooltipHovered = true;
+					this.mouseover();
 				}}
-				on:mouseleave={(e: MouseEvent) => {
-					if (hoverTimeout) clearTimeout(hoverTimeout);
-					// really short timeout to allow transitioning from close button to main tab region.
-					// see the listeners on the close button for details
-					hoverTimeout = setTimeout(() => {
-						this.tooltipActive = false;
-					}, 2);
+				on:mouseleave={() => {
+					this.tooltipHovered = false;
 				}}
 			></div>
-			<TabTooltip
-				tab={this.tab}
-				active={use(this.tooltipActive)}
-				animate={use(this.tooltipAnimate)}
-			/>
 			<div class="dragroot" style="position: unset;">
-				<div class={use(this.active).map((x) => `main ${x ? "active" : ""}`)}>
+				<div class={use(this.active).map((x) => (x ? "main active" : "main"))}>
 					{use(this.tab.icon).and(<img src={use(this.tab.icon)} />)}
 					<span>{use(this.tab.title)}</span>
 					<button
@@ -151,26 +126,9 @@ export function DragTab(
 							e.preventDefault();
 							e.stopPropagation();
 						}}
-						// part that prevents the tooltip from closing when hovering over the close button
-						on:mouseleave={(e: MouseEvent) => {
-							e.stopPropagation();
-							// set a really short timeout to prevent the tooltip from closing immediately.
-							// if going from close button to main tab region, it should stay open for a bit. see line 124
-							hoverTimeout = window.setTimeout(() => {
-								this.tooltipActive = false;
-							}, 2);
-						}}
 						on:mouseenter={(e: MouseEvent) => {
+							this.mouseover();
 							e.stopPropagation();
-							if (hoverTimeout) clearTimeout(hoverTimeout);
-							// set tooltip to active.
-							//
-							// unfortunately whenever you hover over the close button before
-							// the 500ms timeout (L117) it'll just instantly show the tooltip
-							//
-							// it's really icky but its the best thing i could think of that
-							// doesn't bring back the "stuck tooltips" bug
-							this.tooltipActive = true;
 						}}
 					>
 						<Icon icon={iconClose} />
@@ -180,6 +138,7 @@ export function DragTab(
 		</div>
 	);
 }
+
 DragTab.style = css`
 	:scope {
 		display: inline-block;
@@ -191,6 +150,10 @@ DragTab.style = css`
 		--tab-active-border-radius-neg: -10px;
 
 		--tab-selected-textcolor: var(--toolbar_text);
+	}
+
+	:global(*) > :scope:has(:hover) .hover-area {
+		anchor-name: --hovered-tab;
 	}
 
 	.hover-area {
