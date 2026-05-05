@@ -2,6 +2,7 @@ import { IncrementalHtmlRewriter, rewriteHtml } from "@rewriters/html";
 import { ScramjetClient } from "@client/index";
 import { String, _URL } from "@/shared/snapshot";
 import { createReferrerString } from "@/fetch/util";
+import { hookFrameTree } from "./frame";
 
 export default function (client: ScramjetClient, _self: Self) {
 	const tostring = String;
@@ -25,6 +26,65 @@ export default function (client: ScramjetClient, _self: Self) {
 		return writer;
 	}
 
+	function writeRewrittenHtml(document: Document, html: string): void {
+		// Native document.write executes scripts before returning, so frame
+		// markup before a script has to be committed and hooked first.
+		const lower = html.toLowerCase();
+		let index = 0;
+
+		for (;;) {
+			let scriptStart = lower.indexOf("<script", index);
+			while (scriptStart !== -1) {
+				const next = lower.charCodeAt(scriptStart + "<script".length);
+				if (next <= 32 || next === 47 || next === 62) break;
+				scriptStart = lower.indexOf("<script", scriptStart + 1);
+			}
+			if (scriptStart === -1) {
+				if (index < html.length) {
+					client.natives.call(
+						"Document.prototype.write",
+						document,
+						html.slice(index)
+					);
+					hookFrameTree(client, document);
+				}
+				return;
+			}
+
+			if (scriptStart > index) {
+				client.natives.call(
+					"Document.prototype.write",
+					document,
+					html.slice(index, scriptStart)
+				);
+				hookFrameTree(client, document);
+			}
+
+			const openEnd = lower.indexOf(">", scriptStart);
+			if (openEnd === -1) {
+				client.natives.call(
+					"Document.prototype.write",
+					document,
+					html.slice(scriptStart)
+				);
+				return;
+			}
+
+			const closeStart = lower.indexOf("</script", openEnd + 1);
+			const scriptEnd =
+				closeStart === -1
+					? html.length
+					: lower.indexOf(">", closeStart) + 1 || html.length;
+			client.natives.call(
+				"Document.prototype.write",
+				document,
+				html.slice(scriptStart, scriptEnd)
+			);
+			hookFrameTree(client, document);
+			index = scriptEnd;
+		}
+	}
+
 	client.Proxy(
 		["Document.prototype.querySelector", "Document.prototype.querySelectorAll"],
 		{
@@ -40,13 +100,7 @@ export default function (client: ScramjetClient, _self: Self) {
 	client.Proxy("Document.prototype.write", {
 		apply(ctx) {
 			const writer = getDocumentWriter(ctx.this);
-			ctx.return(
-				client.natives.call(
-					"Document.prototype.write",
-					ctx.this,
-					writer.write(ctx.args.join(""))
-				)
-			);
+			ctx.return(writeRewrittenHtml(ctx.this, writer.write(ctx.args.join(""))));
 		},
 	});
 
@@ -74,11 +128,7 @@ export default function (client: ScramjetClient, _self: Self) {
 		apply(ctx) {
 			const writer = getDocumentWriter(ctx.this);
 			ctx.return(
-				client.natives.call(
-					"Document.prototype.write",
-					ctx.this,
-					writer.write(ctx.args.join("") + "\n")
-				)
+				writeRewrittenHtml(ctx.this, writer.write(ctx.args.join("") + "\n"))
 			);
 		},
 	});
@@ -86,18 +136,19 @@ export default function (client: ScramjetClient, _self: Self) {
 	client.Proxy("Document.prototype.close", {
 		apply(ctx) {
 			const writer = client.box.writeRewriters.get(ctx.this);
-			if (!writer) {
-				return;
-			}
-
-			try {
-				const remaining = writer.end();
-				if (remaining) {
-					client.natives.call("Document.prototype.write", ctx.this, remaining);
+			if (writer) {
+				try {
+					const remaining = writer.end();
+					if (remaining) {
+						writeRewrittenHtml(ctx.this, remaining);
+					}
+				} finally {
+					resetDocumentWriter(ctx.this);
 				}
-			} finally {
-				resetDocumentWriter(ctx.this);
 			}
+			const ret = ctx.call();
+			hookFrameTree(client, ctx.this);
+			ctx.return(ret);
 		},
 	});
 

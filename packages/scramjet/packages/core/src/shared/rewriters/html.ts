@@ -1,5 +1,5 @@
 import { ElementType, Parser } from "htmlparser2";
-import { ChildNode, DomHandler, Element, Comment } from "domhandler";
+import { ChildNode, DomHandler, Element, Comment, Text } from "domhandler";
 import render from "dom-serializer";
 import { URLMeta, rewriteUrl } from "@rewriters/url";
 import { rewriteCss } from "@rewriters/css";
@@ -46,6 +46,18 @@ const renderOptions = {
 	encodeEntities: "utf8" as const,
 	decodeEntities: false,
 };
+const FRAME_HOST_TAGS = new Set(["iframe", "frame", "object", "embed"]);
+const FRAME_HOOK_SCRIPT = `(function(){try{var f=document.querySelectorAll("iframe,frame,object,embed");var i=0;while(i!=f.length){try{f[i].contentWindow;}catch(e){}i++;}}finally{var s=document.currentScript;if(s)s.remove();}})();`;
+
+function createFrameHookScript() {
+	return new Element(
+		"script",
+		{ "scramjet-injected": "true" },
+		[new Text(FRAME_HOOK_SCRIPT)],
+		ElementType.Script
+	);
+}
+
 function serializeHtmlNode(node: ChildNode) {
 	return render(node, renderOptions);
 }
@@ -174,7 +186,7 @@ function rewriteHtmlInner(
 		},
 		undefined
 	);
-	traverseParsedHtml(handler.root, context, meta);
+	traverseParsedHtml(handler.root, context, meta, htmlcontext);
 
 	let htmlRoot: Element | undefined;
 	let headElement: Element | undefined;
@@ -341,7 +353,8 @@ export function unrewriteHtml(html: string, foreignContext?: ForeignContext) {
 function traverseParsedHtml(
 	node: any,
 	context: ScramjetContext,
-	meta: URLMeta
+	meta: URLMeta,
+	htmlcontext: HtmlContext
 ) {
 	if (node.name === "base" && node.attribs.href !== undefined) {
 		meta.base = new _URL(node.attribs.href, meta.origin);
@@ -459,12 +472,22 @@ function traverseParsedHtml(
 	}
 
 	if (node.childNodes) {
-		for (const childNode in node.childNodes) {
-			node.childNodes[childNode] = traverseParsedHtml(
-				node.childNodes[childNode],
+		for (let i = 0; i < node.childNodes.length; i++) {
+			const child = traverseParsedHtml(
+				node.childNodes[i],
 				context,
-				meta
+				meta,
+				htmlcontext
 			);
+			node.childNodes[i] = child;
+			if (
+				htmlcontext.loadScripts &&
+				child.type === ElementType.Tag &&
+				FRAME_HOST_TAGS.has(child.name)
+			) {
+				node.childNodes.splice(i + 1, 0, createFrameHookScript());
+				i++;
+			}
 		}
 	}
 

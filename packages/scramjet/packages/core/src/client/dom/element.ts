@@ -11,10 +11,10 @@ import { rewriteCss, unrewriteCss } from "@rewriters/css";
 import { rewriteHtml, unrewriteHtml } from "@rewriters/html";
 import { rewriteJs } from "@rewriters/js";
 import { unrewriteUrl } from "@rewriters/url";
-import { SCRAMJETCLIENT } from "@/symbols";
 import { ScramjetClient } from "@client/index";
 import { isHtmlMimeType } from "@/shared/mime";
 import { ForeignContext } from "@/shared/rewriters/html";
+import { hookFrameHost, hookFrameTree } from "./frame";
 
 function bytesToBase64(bytes: Uint8Array) {
 	const binString = Array_from(bytes, (byte) =>
@@ -459,6 +459,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 			}
 
 			ctx.set(newval);
+			hookFrameTree(client, ctx.this);
 		},
 		get(ctx) {
 			if (client.box.instanceof(ctx.this, "HTMLScriptElement")) {
@@ -536,6 +537,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 
 	client.Trap("Element.prototype.outerHTML", {
 		set(ctx, value: string) {
+			const parent = ctx.this.parentNode || ctx.this.ownerDocument;
 			ctx.set(
 				rewriteHtml(value, client.context, client.meta, {
 					loadScripts: false,
@@ -545,6 +547,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 					foreignContext: insideForeignContext(client, ctx.this),
 				})
 			);
+			hookFrameTree(client, parent);
 		},
 		get(ctx) {
 			return unrewriteHtml(ctx.get(), insideForeignContext(client, ctx.this));
@@ -562,6 +565,9 @@ export default function (client: ScramjetClient, self: typeof window) {
 					foreignContext: foreignContextForElement(client, ctx.this),
 				});
 			} catch {}
+			const ret = ctx.call();
+			hookFrameTree(client, ctx.this);
+			ctx.return(ret);
 		},
 	});
 
@@ -581,6 +587,15 @@ export default function (client: ScramjetClient, self: typeof window) {
 				apisource: "set Element.prototype.insertAdjacentHTML",
 				foreignContext: foreignContextForElement(client, ctx.this),
 			});
+			const ret = ctx.call();
+			const position = String(ctx.args[0]).toLowerCase();
+			hookFrameTree(
+				client,
+				position === "beforebegin" || position === "afterend"
+					? ctx.this.parentNode
+					: ctx.this
+			);
+			ctx.return(ret);
 		},
 	});
 
@@ -682,15 +697,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				const realwin = ctx.get() as Window;
 				if (!realwin) return realwin;
 
-				try {
-					if (!(SCRAMJETCLIENT in realwin)) {
-						// hook the iframe before the client can start to steal globals out of it
-						client.init.hookSubcontext(realwin, ctx.this);
-					}
-				} catch {
-					// cross-origin iframe, can't do anything here
-					return realwin;
-				}
+				hookFrameHost(client, ctx.this);
 
 				return realwin;
 			},
@@ -712,9 +719,7 @@ export default function (client: ScramjetClient, self: typeof window) {
 				);
 				if (!realwin) return realwin;
 
-				if (!(SCRAMJETCLIENT in realwin)) {
-					client.init.hookSubcontext(realwin, ctx.this);
-				}
+				hookFrameHost(client, ctx.this);
 
 				return realwin.document;
 			},
