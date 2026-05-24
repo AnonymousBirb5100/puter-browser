@@ -25,15 +25,16 @@ export function migration(
 }
 
 export async function migrate(version: number, kv: KVWrapper) {
-	const modules = import.meta.glob("./[0-9]*.ts");
-	const migrations = (await Promise.all(
-		Object.values(modules).map((load) => load())
-	)) as Migration[];
+	const modules = import.meta.glob("./[0-9]*.ts", { eager: true });
+	const migrations = Object.values(modules).map(
+		(m: any) => m.default
+	) as Migration[];
+	console.log(migrations);
 	console.log(
 		`attempting migration from ver. ${version} to ${STORAGE_VERSION}`
 	);
 	for (let i = version; i < STORAGE_VERSION; i++) {
-		const migration = migrations.find((m) => m.version === i)!;
+		const migration = Object.values(migrations).find((m) => m.version === i)!;
 		if (!migrate) {
 			throw new Error(`Migration ${i} not found`);
 		}
