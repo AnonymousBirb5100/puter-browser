@@ -103,7 +103,7 @@ class ProxyFrameContext {
 					this.windowproxy = reduceSequence(sequence);
 					tab =
 						tabsService.tabs.find(
-							(t) => t.frame.frame.contentWindow === this.windowproxy
+							(t) => t.session.frame.contentWindow === this.windowproxy
 						) || null;
 					if (!tab) return;
 
@@ -118,7 +118,7 @@ class ProxyFrameContext {
 					// it won't allow scrolling inputs until the tab is focused or something
 					// for some reason frame.focus() doesn't work but frame.click() does ? even cross origin
 					if (tabsService.activetab === tab) {
-						tab.frame.frame.click();
+						tab.session.frame.click();
 					}
 				},
 				titlechange: async ({ title, icon }) => {
@@ -136,7 +136,7 @@ class ProxyFrameContext {
 					if (!tab) return;
 					let offX = 0;
 					let offY = 0;
-					let { x, y } = tab!.frame.frame.getBoundingClientRect();
+					let { x, y } = tab!.session.frame.getBoundingClientRect();
 					offX += x;
 					offY += y;
 					createMenu(
@@ -166,7 +166,7 @@ class ProxyFrameContext {
 					await tab.waitForInit;
 					const seq = findSequence(
 						top!,
-						tab.frame.frame.contentWindow as Window
+						tab.session.frame.contentWindow as Window
 					);
 					if (!seq) throw new Error("No sequence found for new tab");
 
@@ -411,10 +411,10 @@ export function createFetchHandler(controller: Controller) {
 		async fetchBlobUrl(blobUrl: string) {
 			// find a random tab under this controller
 			const tab = tabsService.tabs.find(
-				(tab) => tab.frame.controller === controller
+				(tab) => tab.session.controller === controller
 			);
 			if (!tab) throw new Error("No tab found for blob fetch (?)");
-			let framewindowproxy = tab.frame.frame.contentWindow;
+			let framewindowproxy = tab.session.frame.contentWindow;
 			if (!framewindowproxy)
 				throw new Error("No frame window proxy for blob fetch");
 			// find the context for this proxy

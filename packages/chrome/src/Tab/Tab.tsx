@@ -8,11 +8,11 @@ import { AboutPage } from "../pages/AboutPage";
 import { HistoryPage } from "../pages/HistoryPage";
 import { SettingsPage } from "../pages/SettingsPage";
 import { DownloadsPage } from "../pages/DownloadsPage";
-import { ProxyFrame } from "../proxy/ProxyFrame";
 import { uuid } from "../util";
 import { mountedPromise } from "../App";
 import { tabsService } from "..";
 import { CDPConnection } from "../CDP";
+import { TabSession } from "./TabSession";
 // const requestInspectElement = createDelegate<[HTMLElement, Tab]>();
 
 export type SerializedTab = {
@@ -25,10 +25,7 @@ export type SerializedTab = {
 
 export class Tab extends StatefulClass {
 	title: string | null = null;
-	frame: ProxyFrame;
-	devtoolsFrame: HTMLIFrameElement = (
-		<iframe src="/front_end/inspexctor.html"></iframe>
-	);
+	session: TabSession;
 	screenshot: string | null = null;
 
 	url: URL;
@@ -62,20 +59,7 @@ export class Tab extends StatefulClass {
 		this.url ??= new URL(`${INTERNAL_URL_PROTOCOL}//newtab`);
 		this.id ??= uuid("tab-");
 
-		// this.devtoolsFrame.onload = () => {
-		// 	let session = new CDPConnection((msh) => {
-		// 		this.devtoolsFrame.contentWindow.InspectorFrontendAPI.dispatchMessage(
-		// 			msh
-		// 		);
-		// 	});
-		// 	this.devtoolsFrame.contentWindow.InspectorFrontendHost.sendMessageToBackend =
-		// 		(message) => {
-		// 			console.warn(message);
-		// 			session.sendMessage(message);
-		// 		};
-		// };
-
-		this.frame = new ProxyFrame();
+		this.session = new TabSession();
 		this.history = new History(this, history);
 		this.own(this.history);
 		this.waitForInit = new Promise((resolve) => {
@@ -158,50 +142,26 @@ export class Tab extends StatefulClass {
 		if (url.protocol == INTERNAL_URL_PROTOCOL) {
 			this.icon = null;
 			this.history.current().favicon = "/icon.png";
-			switch (url.host) {
-				case "newtab":
-					this.history.current().title = this.title = "New Tab";
-					this.internalpage = <NewTabPage tab={this} />;
-					break;
-				case "playground":
-					this.history.current().title = this.title = "Scramjet Playground";
-					this.internalpage = <PlaygroundPage tab={this} />;
-					break;
-				case "history":
-					this.history.current().title = this.title = "Browser History";
-					this.internalpage = <HistoryPage tab={this}></HistoryPage>;
-					break;
-				case "version":
-					this.history.current().title = this.title = "About Version";
-					this.internalpage = <AboutPage tab={this} />;
-					break;
-				case "settings":
-					this.history.current().title = this.title = "Settings";
-					this.internalpage = (
-						<SettingsPage
-							tab={this}
-							selected={
-								url.pathname.length > 1 ? url.pathname.slice(1) : "general"
-							}
-						/>
-					);
-					break;
-				case "downloads":
-					this.history.current().title = this.title = "Downloads";
-					this.internalpage = <DownloadsPage tab={this} />;
+			const page = createInternalPage(url, this);
+			if (page) {
+				this.internalpage = page.page;
+				this.history.current().title = this.title = page.title;
+			} else {
+				// TODO: make this better
+				this.internalpage = (
+					<div style={{ padding: "20px" }}>
+						<h1>404 Not Found</h1>
+						<p>No internal page found for {url.href}</p>
+					</div>
+				);
+				this.history.current().title = this.title = "404 Not Found";
 			}
 		} else {
 			// placeholder title until the page fills in
 			this.history.current().title = this.title = url.href;
 
-			// if (!navigator.serviceWorker.controller) {
-			// 	serviceWorkerReady.then(() => {
 			console.warn("navigating to", url);
-			this.frame.go(url);
-			// 	});
-			// } else {
-			// this.frame.go(url);
-			// }
+			this.session.go(url);
 		}
 	}
 
@@ -231,7 +191,54 @@ export class Tab extends StatefulClass {
 		if (this.internalpage) {
 			this._directnavigate(this.url);
 		} else {
-			this.frame.reload();
+			this.session.reload();
 		}
+	}
+}
+
+function createInternalPage(
+	url: URL,
+	tab: Tab
+): { title: string; page: HTMLElement } | null {
+	switch (url.host) {
+		case "newtab":
+			return {
+				title: "New Tab",
+				page: <NewTabPage tab={tab} />,
+			};
+		case "playground":
+			return {
+				title: "Scramjet Playground",
+				page: <PlaygroundPage tab={tab} />,
+			};
+		case "history":
+			return {
+				title: "Browser History",
+				page: <HistoryPage tab={tab} />,
+			};
+		case "version":
+			return {
+				title: "About Version",
+				page: <AboutPage tab={tab} />,
+			};
+		case "settings":
+			return {
+				title: "Settings",
+				page: (
+					<SettingsPage
+						tab={tab}
+						selected={
+							url.pathname.length > 1 ? url.pathname.slice(1) : "general"
+						}
+					></SettingsPage>
+				),
+			};
+		case "downloads":
+			return {
+				title: "Downloads",
+				page: <DownloadsPage tab={tab} />,
+			};
+		default:
+			return null;
 	}
 }
