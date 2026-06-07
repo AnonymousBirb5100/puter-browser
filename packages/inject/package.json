@@ -12,10 +12,12 @@
 	"license": "AGPL-3.0-only",
 	"packageManager": "pnpm@10.12.1",
 	"dependencies": {
-		"@mercuryworkshop/scramjet": "workspace:*",
 		"@mercuryworkshop/libcurl-transport": "catalog:",
 		"@mercuryworkshop/rpc": "workspace:*",
-		"chobitsu": "workspace:*",
+		"@mercuryworkshop/scramjet": "workspace:*",
 		"html-to-image": "^1.11.13"
+	},
+	"devDependencies": {
+		"devtools-protocol": "^0.0.1339468"
 	}
 }

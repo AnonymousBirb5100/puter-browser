@@ -3,6 +3,7 @@ import { Controller, controllerForURL } from "./Controller";
 
 export class ProxyFrame {
 	frame: HTMLIFrameElement;
+	frameWindowProxy: WindowProxy;
 	controller: Controller | null = null;
 	constructor() {
 		this.frame = document.createElement("iframe");

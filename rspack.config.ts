@@ -96,6 +96,6 @@ const injectConfig = defineConfig({
 
 export default [
 	...(process.env.SKIP_CORE ? [] : scramjetConfig),
-	cdpConfig,
+	// cdpConfig,
 	injectConfig,
 ];

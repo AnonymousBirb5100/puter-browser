@@ -22,6 +22,7 @@ import { setupAnchorHandler } from "./emulators/anchors";
 import { setupWindowOpen } from "./emulators/windowopen";
 import { RemoteTransport } from "./transport";
 import { setupAlwaysLastBubble } from "./emulators/alwaysLastBubble";
+import { setupCDPServer } from "./CDP";
 
 function makeContextId(): string {
 	return "context-" + Math.random().toString(36).substring(2, 10);
@@ -124,6 +125,7 @@ export class ExecutionContextWrapper {
 		setupHistoryEmulation(this);
 		setupAnchorHandler(this, addAlwaysLastEventListener);
 		setupWindowOpen(this);
+		setupCDPServer(this);
 		// inform	chrome of the current url
 		// will happen if you get redirected/click on a link, etc, the chrome will have no idea otherwise
 

@@ -25,7 +25,7 @@ export function Shell(this: FC<{}>) {
 	pushTab.listen((tab) => {
 		// paint the iframes
 		tab.frame.frame.classList.add(this.cx.id!);
-		// tab.devtoolsFrame.frame.classList.add(this.cx.id!);
+		tab.devtoolsFrame.classList.add(this.cx.id!);
 
 		let mouseMoveListen = (e: MouseEvent) => {
 			tab.devtoolsWidth = window.innerWidth - e.clientX;
@@ -63,9 +63,7 @@ export function Shell(this: FC<{}>) {
 						}}
 						class="divider"
 					></div>
-					<div class="devtoolsframecontainer">
-						{/*{tab.devtoolsFrame.frame}*/}
-					</div>
+					<div class="devtoolsframecontainer">{tab.devtoolsFrame}</div>
 				</div>
 				<progress value={use(tab.loadProgress)}></progress>
 			</div>

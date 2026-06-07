@@ -12,6 +12,7 @@ import { ProxyFrame } from "../proxy/ProxyFrame";
 import { uuid } from "../util";
 import { mountedPromise } from "../App";
 import { tabsService } from "..";
+import { CDPConnection } from "../CDP";
 // const requestInspectElement = createDelegate<[HTMLElement, Tab]>();
 
 export type SerializedTab = {
@@ -25,7 +26,9 @@ export type SerializedTab = {
 export class Tab extends StatefulClass {
 	title: string | null = null;
 	frame: ProxyFrame;
-	devtoolsFrame: any;
+	devtoolsFrame: HTMLIFrameElement = (
+		<iframe src="/front_end/inspexctor.html"></iframe>
+	);
 	screenshot: string | null = null;
 
 	url: URL;
@@ -58,6 +61,19 @@ export class Tab extends StatefulClass {
 		Object.assign(this, init);
 		this.url ??= new URL(`${INTERNAL_URL_PROTOCOL}//newtab`);
 		this.id ??= uuid("tab-");
+
+		// this.devtoolsFrame.onload = () => {
+		// 	let session = new CDPConnection((msh) => {
+		// 		this.devtoolsFrame.contentWindow.InspectorFrontendAPI.dispatchMessage(
+		// 			msh
+		// 		);
+		// 	});
+		// 	this.devtoolsFrame.contentWindow.InspectorFrontendHost.sendMessageToBackend =
+		// 		(message) => {
+		// 			console.warn(message);
+		// 			session.sendMessage(message);
+		// 		};
+		// };
 
 		this.frame = new ProxyFrame();
 		this.history = new History(this, history);

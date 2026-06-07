@@ -12,6 +12,7 @@ export function UrlInput(
 	this: FC<{
 		active: boolean;
 		favicon: string | null;
+		domain: string | null;
 		url: URL;
 		value: string;
 		input: HTMLInputElement;
@@ -28,7 +29,12 @@ export function UrlInput(
 				{use(this.active)
 					.and(
 						use(this.favicon)
-							.and(<Favicon url={this.favicon}></Favicon>)
+							.and(
+								<Favicon
+									domain={use(this.domain)}
+									// iconUrl={use(this.favicon)}
+								></Favicon>
+							)
 							.or(<Icon icon={iconSearch}></Icon>)
 					)
 					.or(<SiteOptionsButton></SiteOptionsButton>)}
