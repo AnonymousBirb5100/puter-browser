@@ -49,7 +49,7 @@ COPY --from=builder /app .
 # devserver.ts uses CHROME_PORT for the main HTTP listener (default 6767).
 # Render injects $PORT; set CHROME_PORT to match the port you configure in
 # your Render service settings (Settings → Port). Default below is 6767.
-ENV CHROME_PORT=6767
-EXPOSE 6767
+# ENV CHROME_PORT=6767
+EXPOSE 10000
 
-CMD ["pnpm", "dev"]
+CMD ["sh", "-c", "CHROME_PORT=${PORT:-10000} pnpm dev"]
