@@ -6,9 +6,9 @@ RUN git clone --recurse-submodules https://github.com/HeyPuter/browser.js /app
 # ── Stage 1: Build ──────────────────────────────────────────────────────────
 FROM rust:1 AS builder
 
-# Install Node.js 22 and curl
+# Install Node.js 24 and curl
 RUN apt-get update && apt-get install -y curl && \
-    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
 
@@ -37,7 +37,7 @@ RUN pnpm build && pnpm build
 
 
 # ── Stage 2: Runtime ────────────────────────────────────────────────────────
-FROM node:22
+FROM node:24
 
 # git needed at runtime: devserver.ts calls git rev-parse for its banner
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
