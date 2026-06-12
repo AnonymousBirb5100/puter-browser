@@ -19,7 +19,8 @@ RUN npm install -g pnpm
 RUN rustup target add wasm32-unknown-unknown
 
 # Install Rust WASM tools
-RUN cargo install wasm-bindgen-cli wasm-snip
+RUN cargo install wasm-bindgen-cli --version 0.2.105
+RUN cargo install wasm-snip
 
 # Install binaryen (provides wasm-opt)
 RUN curl -L https://github.com/WebAssembly/binaryen/releases/download/version_128/binaryen-version_128-x86_64-linux.tar.gz \
